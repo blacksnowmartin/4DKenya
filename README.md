@@ -3,7 +3,7 @@
 
 Setting up 
 ```bash
-git clone https://github.com/blacksnowmartin/4DKenya.hit
+git clone https://github.com/blacksnowmartin/4DKenya.git
 ```
 Make sure you have this installed in your machine
 
