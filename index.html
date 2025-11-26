@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>4DKenya | Frontier Innovation Engine</title>
+    <style>
+        body { margin: 0; background-color: #050510; color: #00ffcc; font-family: 'Courier New', monospace; overflow: hidden; }
+        #info { position: absolute; top: 20px; left: 20px; z-index: 10; pointer-events: none; }
+        h1 { margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 2px; }
+        p { font-size: 14px; opacity: 0.8; }
+        #status { color: #ff3366; font-weight: bold; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+    <div id="info">
+        <h1>4DKenya Engine</h1>
+        <p>System: Higher-Dimensional AI Prototyping</p>
+        <p>Status: <span id="status">Connecting to Neural Core...</span></p>
+        <p>Simulation: 4D Hypercube Projection (Tesseract)</p>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const API_URL = "http://localhost:8000/simulate";
+        let time = 0;
+
+        // --- THREE.JS SETUP ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // --- 4D GEOMETRY SETUP ---
+        // A tesseract has 16 vertices (corners)
+        const vertices4D = [];
+        for (let i = 0; i < 16; i++) {
+            vertices4D.push({
+                x: (i & 1) ? 1 : -1,
+                y: (i & 2) ? 1 : -1,
+                z: (i & 4) ? 1 : -1,
+                w: (i & 8) ? 1 : -1
+            });
+        }
+
+        // Edges connect vertices that differ by exactly 1 coordinate
+        const edges = [];
+        for (let i = 0; i < 16; i++) {
+            for (let j = i + 1; j < 16; j++) {
+                let diff = 0;
+                if (vertices4D[i].x !== vertices4D[j].x) diff++;
+                if (vertices4D[i].y !== vertices4D[j].y) diff++;
+                if (vertices4D[i].z !== vertices4D[j].z) diff++;
+                if (vertices4D[i].w !== vertices4D[j].w) diff++;
+                if (diff === 1) edges.push([i, j]);
+            }
+        }
+
+        // Create 3D lines to represent the projected edges
+        const material = new THREE.LineBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.6 });
+        const lines = [];
+        
+        edges.forEach(edge => {
+            const geometry = new THREE.BufferGeometry();
+            // Initial dummy positions
+            const points = [new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,0)];
+            geometry.setFromPoints(points);
+            const line = new THREE.Line(geometry, material);
+            lines.push(line);
+            scene.add(line);
+        });
+
+        camera.position.z = 4;
+
+        // --- MATH UTILS ---
+        function rotate4D(point, angle) {
+            // Complex rotation in XW and ZW planes (Double rotation)
+            let x = point.x; let y = point.y; let z = point.z; let w = point.w;
+            
+            // Rotate around XW plane
+            let nx = x * Math.cos(angle) - w * Math.sin(angle);
+            let nw = x * Math.sin(angle) + w * Math.cos(angle);
+            x = nx; w = nw;
+
+            // Rotate around YZ plane
+            let ny = y * Math.cos(angle) - z * Math.sin(angle);
+            let nz = y * Math.sin(angle) + z * Math.cos(angle);
+            y = ny; z = nz;
+
+            return {x, y, z, w};
+        }
+
+        function project(v4) {
+            // Stereographic projection: 4D -> 3D
+            const distance = 3; 
+            const w = 1 / (distance - v4.w);
+            return new THREE.Vector3(
+                v4.x * w,
+                v4.y * w,
+                v4.z * w
+            );
+        }
+
+        // --- MAIN LOOP ---
+        async function animate() {
+            requestAnimationFrame(animate);
+            time += 0.01;
+
+            // 1. Fetch AI parameters (Simulating querying the 4DKenya engine)
+            // If backend is offline, we fallback to local math so the demo doesn't crash
+            try {
+                // Uncomment this line if running the python server
+                // const response = await fetch(`${API_URL}?time=${time}`);
+                // const data = await response.json();
+                // Use data.coords.w to influence rotation speed or shape
+                document.getElementById('status').innerText = "AI Core Active: Streaming Tensors";
+                document.getElementById('status').style.color = "#00ffcc";
+            } catch (e) {
+                document.getElementById('status').innerText = "AI Offline: Running Simulation Mode";
+            }
+
+            // 2. Update Geometry
+            const projectedVertices = vertices4D.map(v => {
+                const rotated = rotate4D(v, time);
+                return project(rotated);
+            });
+
+            // 3. Update Lines
+            edges.forEach((edge, index) => {
+                const v1 = projectedVertices[edge[0]];
+                const v2 = projectedVertices[edge[1]];
+                lines[index].geometry.setFromPoints([v1, v2]);
+            });
+
+            // Rotate the whole system in 3D for better viewing
+            scene.rotation.y += 0.005;
+            scene.rotation.x += 0.002;
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
