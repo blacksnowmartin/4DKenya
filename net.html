@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>4DKenya | Quantum Security</title>
+    <style>
+        /* CYBERPUNK STYLING */
+        body { margin: 0; background-color: #020205; color: #00ffcc; font-family: 'Segoe UI', Courier, monospace; overflow: hidden; }
+        
+        #hud-panel { 
+            position: absolute; top: 20px; left: 20px; z-index: 10; 
+            background: rgba(0, 10, 20, 0.85); 
+            border-left: 4px solid #00ffcc; 
+            padding: 20px; width: 320px; 
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.2);
+        }
+
+        h1 { margin: 0 0 10px 0; font-size: 22px; text-transform: uppercase; letter-spacing: 2px; }
+        .monitor-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; border-bottom: 1px solid #333; padding-bottom: 2px;}
+        
+        #status-display { font-weight: bold; font-size: 16px; color: #00ffcc; text-shadow: 0 0 5px #00ffcc; }
+        
+        .controls { margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        
+        button { 
+            padding: 12px; border: none; font-weight: bold; cursor: pointer; 
+            text-transform: uppercase; font-size: 12px; transition: 0.3s;
+        }
+        
+        .btn-attack { background: #330000; color: #ff4444; border: 1px solid #ff4444; }
+        .btn-attack:hover { background: #ff4444; color: black; box-shadow: 0 0 15px red; }
+
+        .btn-defense { background: #002233; color: #00ffcc; border: 1px solid #00ffcc; }
+        .btn-defense:hover { background: #00ffcc; color: black; box-shadow: 0 0 15px cyan; }
+        
+        .btn-reset { grid-column: span 2; background: #222; color: #fff; border: 1px solid #555; }
+        .btn-reset:hover { background: #fff; color: #000; }
+
+        #connection-warning {
+            position: absolute; bottom: 20px; left: 20px; color: red; font-weight: bold; display: none;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+    <div id="hud-panel">
+        <h1>4DKenya Engine</h1>
+        <div class="monitor-row"><span>SYSTEM:</span> <span id="status-display">SECURE</span></div>
+        <div class="monitor-row"><span>ENTROPY:</span> <span id="entropy-val">0.00%</span></div>
+        <div class="monitor-row"><span>DEFENSE AI:</span> <span id="defense-val">STANDBY</span></div>
+
+        <div class="controls">
+            <button class="btn-attack" onclick="sendCmd('trigger_attack')">⚠️ SIMULATE ATTACK</button>
+            <button class="btn-defense" onclick="sendCmd('activate_defense')">🛡️ DEPLOY AI SHIELD</button>
+            <button class="btn-reset" onclick="sendCmd('reset_system')">SYSTEM REBOOT</button>
+        </div>
+    </div>
+
+    <div id="connection-warning">⚠ CONNECTION LOST - ENGINE OFFLINE</div>
+
+    <script>
+        // --- THREE.JS SETUP ---
+        const scene = new THREE.Scene();
+        // Fog gives depth
+        scene.fog = new THREE.FogExp2(0x020205, 0.15); 
+        
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+        camera.position.z = 5;
+
+        // --- 4D TESSERACT GEOMETRY ---
+        // A Tesseract has 16 vertices. We store them here.
+        const vertices4D = [];
+        for (let i = 0; i < 16; i++) {
+            vertices4D.push({
+                x: (i & 1) ? 1 : -1, y: (i & 2) ? 1 : -1,
+                z: (i & 4) ? 1 : -1, w: (i & 8) ? 1 : -1
+            });
+        }
+
+        // Connect edges
+        const edges = [];
+        for (let i = 0; i < 16; i++) {
+            for (let j = i + 1; j < 16; j++) {
+                let diff = 0;
+                ['x','y','z','w'].forEach(k => { if(vertices4D[i][k] !== vertices4D[j][k]) diff++; });
+                if (diff === 1) edges.push([i, j]);
+            }
+        }
+
+        // Create the Lines
+        const material = new THREE.LineBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.8 });
+        const geometry = new THREE.BufferGeometry();
+        // Allocate buffer for 32 edges * 2 points * 3 coords
+        const positions = new Float32Array(edges.length * 2 * 3); 
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const tesseractLines = new THREE.LineSegments(geometry, material);
+        scene.add(tesseractLines);
+
+        // --- MATH HELPERS ---
+        function rotate4D(point, angle, distortion) {
+            let {x, y, z, w} = point;
+            
+            // Add GLITCH (Distortion) based on Backend Entropy
+            if (distortion > 0) {
+                // Jitter the 4th dimension based on chaos level
+                w += (Math.random() - 0.5) * distortion * 2; 
+            }
+
+            // Rotate XW
+            let nx = x * Math.cos(angle) - w * Math.sin(angle);
+            let nw = x * Math.sin(angle) + w * Math.cos(angle);
+            x = nx; w = nw;
+
+            // Rotate ZW
+            let nz = z * Math.cos(angle * 0.5) - w * Math.sin(angle * 0.5);
+            nw = z * Math.sin(angle * 0.5) + w * Math.cos(angle * 0.5);
+            z = nz; w = nw;
+
+            return {x, y, z, w};
+        }
+
+        function project(v4) {
+            const distance = 3;
+            const wInv = 1 / (distance - v4.w);
+            return new THREE.Vector3(v4.x * wInv, v4.y * wInv, v4.z * wInv);
+        }
+
+        // --- API COMMUNICATION ---
+        const API_URL = "http://localhost:8000";
+        let time = 0;
+
+        async function sendCmd(endpoint) {
+            try { await fetch(`${API_URL}/${endpoint}`, { method: 'POST' }); } 
+            catch (e) { console.error("Command failed", e); }
+        }
+
+        async function animate() {
+            requestAnimationFrame(animate);
+            time += 0.02;
+
+            try {
+                // 1. Get Physics Data from Brain
+                const res = await fetch(`${API_URL}/telemetry?time=${time}`);
+                const data = await res.json();
+
+                // 2. Update HUD
+                const hudStatus = document.getElementById('status-display');
+                hudStatus.innerText = data.status;
+                hudStatus.style.color = data.color;
+                hudStatus.style.textShadow = `0 0 10px ${data.color}`;
+                
+                document.getElementById('entropy-val').innerText = (data.distortion * 100).toFixed(1) + "%";
+                document.getElementById('defense-val').innerText = data.defense_active ? "ENGAGED" : "STANDBY";
+                document.getElementById('connection-warning').style.display = 'none';
+
+                // 3. Update Visuals (Color)
+                tesseractLines.material.color.set(data.color);
+
+                // 4. Update Geometry (Rotation + Glitch)
+                const posAttr = tesseractLines.geometry.attributes.position.array;
+                let idx = 0;
+
+                edges.forEach(edge => {
+                    const v1 = project(rotate4D(vertices4D[edge[0]], time, data.distortion));
+                    const v2 = project(rotate4D(vertices4D[edge[1]], time, data.distortion));
+
+                    posAttr[idx++] = v1.x; posAttr[idx++] = v1.y; posAttr[idx++] = v1.z;
+                    posAttr[idx++] = v2.x; posAttr[idx++] = v2.y; posAttr[idx++] = v2.z;
+                });
+
+                tesseractLines.geometry.attributes.position.needsUpdate = true;
+                
+                // Slow ambient rotation
+                scene.rotation.y += 0.005;
+
+            } catch (e) {
+                // PROOF OF DEPENDENCY: If server dies, visualization stops updating
+                document.getElementById('connection-warning').style.display = 'block';
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
