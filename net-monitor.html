@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>4DKenya | Network Visualizer</title>
+    <style>
+        body { margin: 0; background-color: #000; color: #00ffcc; font-family: 'Courier New', monospace; overflow: hidden; }
+        #hud { 
+            position: absolute; top: 20px; left: 20px; z-index: 10; 
+            background: rgba(0, 20, 0, 0.8); border: 1px solid #00ffcc; padding: 20px; width: 300px; 
+        }
+        h1 { font-size: 18px; margin: 0 0 10px 0; border-bottom: 1px solid #444; padding-bottom: 5px; }
+        .data-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; }
+        #status-text { font-weight: bold; }
+        .bar-container { width: 100%; height: 10px; background: #222; margin-top: 10px; }
+        #load-bar { width: 0%; height: 100%; background: #00ffcc; transition: width 0.1s; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+    <div id="hud">
+        <h1>4D Network Monitor</h1>
+        <div class="data-row"><span>CONNECTION:</span> <span id="conn-status" style="color:red">OFFLINE</span></div>
+        <div class="data-row"><span>AI STATUS:</span> <span id="status-text">WAITING...</span></div>
+        <div class="data-row"><span>TENSOR VAL:</span> <span id="tensor-val">0.0000</span></div>
+        
+        <div class="bar-container">
+            <div id="load-bar"></div>
+        </div>
+        <p style="font-size:10px; color:#666; margin-top:10px;">* If tesseract stops, server is dead.</p>
+    </div>
+
+    <script>
+        // --- THREE.JS SETUP ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+        camera.position.z = 4;
+
+        // --- CREATE TESSERACT (WIREFRAME) ---
+        const geometry = new THREE.BoxGeometry(1.5, 1.5, 1.5);
+        const edges = new THREE.EdgesGeometry(geometry);
+        const material = new THREE.LineBasicMaterial({ color: 0x00ffcc, linewidth: 2 });
+        const tesseract = new THREE.LineSegments(edges, material);
+        
+        // Add an inner cube to make it look "4D"
+        const innerGeo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+        const innerEdges = new THREE.EdgesGeometry(innerGeo);
+        const innerCube = new THREE.LineSegments(innerEdges, material);
+        
+        tesseract.add(innerCube); // Child of the main cube
+        scene.add(tesseract);
+
+        // --- THE LOOP ---
+        let time = 0;
+        const API_URL = "http://localhost:8000/network_pulse";
+
+        async function animate() {
+            requestAnimationFrame(animate);
+            time += 0.05;
+
+            // 1. TALK TO PYTHON
+            try {
+                const response = await fetch(`${API_URL}?time=${time}`);
+                const data = await response.json();
+
+                // 2. VISUALIZE SERVER DATA
+                // The server tells us the color (Green/Orange/Red)
+                tesseract.material.color.set(data.color);
+                innerCube.material.color.set(data.color);
+
+                // The server tells us the "Load" (Rotation Speed + Size)
+                // High Load = Fast Spin + Big Pulse
+                const speed = 0.01 + (data.load * 0.05); 
+                tesseract.rotation.x += speed;
+                tesseract.rotation.y += speed;
+                
+                // Pulse effect based on tensor value
+                const scale = 1 + (data.load * 0.3);
+                tesseract.scale.set(scale, scale, scale);
+
+                // Update HUD
+                document.getElementById('conn-status').innerText = "CONNECTED";
+                document.getElementById('conn-status').style.color = "#00ff00";
+                document.getElementById('status-text').innerText = data.status;
+                document.getElementById('status-text').style.color = data.color;
+                document.getElementById('tensor-val').innerText = data.server_message;
+                document.getElementById('load-bar').style.width = (data.load * 100) + "%";
+                document.getElementById('load-bar').style.background = data.color;
+
+            } catch (error) {
+                // 3. FAILURE STATE
+                // If server is off, the simulation FREEZES. 
+                // This proves the frontend is helpless without the backend.
+                document.getElementById('conn-status').innerText = "CONNECTION LOST";
+                document.getElementById('conn-status').style.color = "red";
+                // We do NOT rotate the cube here. It freezes.
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
