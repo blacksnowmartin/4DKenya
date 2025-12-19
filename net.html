@@ -9,60 +9,149 @@
         
         #hud-panel { 
             position: absolute; top: 20px; left: 20px; z-index: 10; 
-            background: rgba(0, 10, 20, 0.85); 
+            background: rgba(0, 10, 20, 0.9); 
             border-left: 4px solid #00ffcc; 
-            padding: 20px; width: 320px; 
-            box-shadow: 0 0 20px rgba(0, 255, 204, 0.2);
+            padding: 20px; width: 380px; 
+            max-height: 85vh;
+            box-shadow: 0 0 30px rgba(0, 255, 204, 0.3);
+            overflow-y: auto;
         }
 
-        h1 { margin: 0 0 10px 0; font-size: 22px; text-transform: uppercase; letter-spacing: 2px; }
-        .monitor-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; border-bottom: 1px solid #333; padding-bottom: 2px;}
+        h1 { margin: 0 0 15px 0; font-size: 22px; text-transform: uppercase; letter-spacing: 2px; }
+        h2 { font-size: 12px; margin: 15px 0 8px 0; color: #00ff88; text-transform: uppercase; letter-spacing: 1px; }
         
-        #status-display { font-weight: bold; font-size: 16px; color: #00ffcc; text-shadow: 0 0 5px #00ffcc; }
+        .monitor-row { 
+            display: flex; justify-content: space-between; margin-bottom: 6px; 
+            font-size: 13px; border-bottom: 1px solid #1a3a3a; padding-bottom: 3px;
+        }
         
-        .controls { margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .monitor-value { 
+            color: #00ffcc; font-weight: bold;
+            text-shadow: 0 0 5px #00ffcc;
+        }
+
+        .threat-level { color: #ff6600; }
+        .anomaly-level { color: #ff00ff; }
+        .energy-bar { 
+            width: 100%; height: 8px; background: #1a1a1a; 
+            border: 1px solid #00ff88; border-radius: 2px; 
+            overflow: hidden; margin-top: 3px;
+        }
+        .energy-fill { height: 100%; background: linear-gradient(90deg, #00ff88, #00ffcc); transition: width 0.3s; }
+        
+        .controls { margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         
         button { 
-            padding: 12px; border: none; font-weight: bold; cursor: pointer; 
-            text-transform: uppercase; font-size: 12px; transition: 0.3s;
+            padding: 10px; border: none; font-weight: bold; cursor: pointer; 
+            text-transform: uppercase; font-size: 11px; transition: 0.3s;
+            border-radius: 2px;
         }
         
         .btn-attack { background: #330000; color: #ff4444; border: 1px solid #ff4444; }
-        .btn-attack:hover { background: #ff4444; color: black; box-shadow: 0 0 15px red; }
+        .btn-attack:hover:not(:disabled) { background: #ff4444; color: black; box-shadow: 0 0 15px red; }
+        .btn-attack:disabled { opacity: 0.5; cursor: not-allowed; }
 
         .btn-defense { background: #002233; color: #00ffcc; border: 1px solid #00ffcc; }
-        .btn-defense:hover { background: #00ffcc; color: black; box-shadow: 0 0 15px cyan; }
+        .btn-defense:hover:not(:disabled) { background: #00ffcc; color: black; box-shadow: 0 0 15px cyan; }
+        .btn-defense:disabled { opacity: 0.5; cursor: not-allowed; }
         
         .btn-reset { grid-column: span 2; background: #222; color: #fff; border: 1px solid #555; }
         .btn-reset:hover { background: #fff; color: #000; }
 
+        .btn-learning { grid-column: span 2; background: #1a2233; color: #00ff88; border: 1px solid #00ff88; }
+        .btn-learning:hover { background: #00ff88; color: black; }
+        .btn-learning.active { background: #00ff88; color: black; box-shadow: 0 0 10px #00ff88; }
+
+        .attack-dropdown {
+            width: 100%; padding: 8px; background: #1a2233; color: #00ffcc;
+            border: 1px solid #00ffcc; border-radius: 2px; cursor: pointer;
+            margin-bottom: 8px;
+        }
+
         #connection-warning {
             position: absolute; bottom: 20px; left: 20px; color: red; font-weight: bold; display: none;
         }
+
+        #info-panel {
+            position: absolute; bottom: 20px; right: 20px; z-index: 10;
+            background: rgba(0, 10, 20, 0.85);
+            border-right: 4px solid #00ff88;
+            padding: 15px; width: 300px;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+            font-size: 12px;
+        }
+
+        .info-row { margin-bottom: 5px; }
+        .info-label { color: #00ff88; }
+
+        /* Scrollbar styling */
+        #hud-panel::-webkit-scrollbar { width: 8px; }
+        #hud-panel::-webkit-scrollbar-track { background: rgba(0, 255, 204, 0.1); }
+        #hud-panel::-webkit-scrollbar-thumb { background: #00ffcc; border-radius: 4px; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 </head>
 <body>
 
     <div id="hud-panel">
         <h1>4DKenya Engine</h1>
-        <div class="monitor-row"><span>SYSTEM:</span> <span id="status-display">SECURE</span></div>
-        <div class="monitor-row"><span>ENTROPY:</span> <span id="entropy-val">0.00%</span></div>
-        <div class="monitor-row"><span>DEFENSE AI:</span> <span id="defense-val">STANDBY</span></div>
+        <div class="monitor-row"><span>SYSTEM:</span> <span id="status-display" class="monitor-value">SECURE</span></div>
+        <div class="monitor-row"><span>ENTROPY:</span> <span id="entropy-val" class="monitor-value">0.00%</span></div>
+        <div class="monitor-row"><span>THREAT LEVEL:</span> <span id="threat-val" class="monitor-value threat-level">0.00</span></div>
+        <div class="monitor-row"><span>ANOMALY:</span> <span id="anomaly-val" class="monitor-value anomaly-level">0.00</span></div>
+        <div class="monitor-row"><span>STABILITY:</span> <span id="stability-val" class="monitor-value">100%</span></div>
+        <div class="monitor-row"><span>DEFENSE AI:</span> <span id="defense-val" class="monitor-value">STANDBY</span></div>
+        <div class="monitor-row"><span>EFFICIENCY:</span> <span id="efficiency-val" class="monitor-value">100%</span></div>
+
+        <div class="monitor-row">
+            <span>ENERGY:</span>
+            <span id="energy-val" class="monitor-value">100%</span>
+        </div>
+        <div class="energy-bar"><div class="energy-fill" id="energy-fill" style="width: 100%"></div></div>
+
+        <h2>Attack Vectors</h2>
+        <select id="attack-type" class="attack-dropdown">
+            <option value="ddos">DDoS Attack</option>
+            <option value="ransomware">Ransomware</option>
+            <option value="exploit">Exploit</option>
+            <option value="probe">Network Probe</option>
+        </select>
 
         <div class="controls">
-            <button class="btn-attack" onclick="sendCmd('trigger_attack')">⚠️ SIMULATE ATTACK</button>
-            <button class="btn-defense" onclick="sendCmd('activate_defense')">🛡️ DEPLOY AI SHIELD</button>
-            <button class="btn-reset" onclick="sendCmd('reset_system')">SYSTEM REBOOT</button>
+            <button class="btn-attack" id="btn-attack" onclick="triggerAttack()">⚠️ TRIGGER ATTACK</button>
+            <button class="btn-defense" id="btn-defense" onclick="activateDefense()">🛡️ DEPLOY SHIELD</button>
+            <button class="btn-reset" onclick="resetSystem()">SYSTEM REBOOT</button>
         </div>
+
+        <h2>Neural Learning</h2>
+        <button class="btn-learning" id="btn-learning" onclick="toggleLearning()">LEARNING: ON</button>
+
+        <h2>Attack History</h2>
+        <div id="attack-history" style="font-size: 11px; color: #888; max-height: 150px; overflow-y: auto;"></div>
+    </div>
+
+    <div id="info-panel">
+        <div class="info-row"><span class="info-label">Active Attacks:</span> <span id="active-attacks">0</span></div>
+        <div class="info-row"><span class="info-label">Avg Entropy (10s):</span> <span id="avg-entropy">0.00%</span></div>
+        <div class="info-row"><span class="info-label">Defense Efficiency:</span> <span id="panel-efficiency">100%</span></div>
+        <div class="info-row"><span class="info-label">Connection:</span> <span id="connection-status" style="color: #00ffcc;">ONLINE</span></div>
     </div>
 
     <div id="connection-warning">⚠ CONNECTION LOST - ENGINE OFFLINE</div>
 
     <script>
+        // --- GLOBAL STATE ---
+        const state = {
+            time: 0,
+            lastUpdate: Date.now(),
+            attackHistory: [],
+            learningMode: true,
+            dataPoints: []
+        };
+
         // --- THREE.JS SETUP ---
         const scene = new THREE.Scene();
-        // Fog gives depth
         scene.fog = new THREE.FogExp2(0x020205, 0.15); 
         
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -71,17 +160,17 @@
         document.body.appendChild(renderer.domElement);
         camera.position.z = 5;
 
-        // --- 4D TESSERACT GEOMETRY ---
-        // A Tesseract has 16 vertices. We store them here.
+        // --- ADVANCED 4D TESSERACT WITH DUAL LAYERS ---
         const vertices4D = [];
         for (let i = 0; i < 16; i++) {
             vertices4D.push({
-                x: (i & 1) ? 1 : -1, y: (i & 2) ? 1 : -1,
-                z: (i & 4) ? 1 : -1, w: (i & 8) ? 1 : -1
+                x: (i & 1) ? 1 : -1, 
+                y: (i & 2) ? 1 : -1,
+                z: (i & 4) ? 1 : -1, 
+                w: (i & 8) ? 1 : -1
             });
         }
 
-        // Connect edges
         const edges = [];
         for (let i = 0; i < 16; i++) {
             for (let j = i + 1; j < 16; j++) {
@@ -91,31 +180,51 @@
             }
         }
 
-        // Create the Lines
-        const material = new THREE.LineBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.8 });
-        const geometry = new THREE.BufferGeometry();
-        // Allocate buffer for 32 edges * 2 points * 3 coords
-        const positions = new Float32Array(edges.length * 2 * 3); 
-        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        const tesseractLines = new THREE.LineSegments(geometry, material);
-        scene.add(tesseractLines);
+        // Create dual tesseract layers for threat visualization
+        const createTesseractLayer = (color) => {
+            const material = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.7 });
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(edges.length * 2 * 3); 
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            return new THREE.LineSegments(geometry, material);
+        };
+
+        const tesseractPrimary = createTesseractLayer(0x00ffcc);
+        const tesseractThreat = createTesseractLayer(0xff0000);
+        scene.add(tesseractPrimary);
+        scene.add(tesseractThreat);
+
+        // Particle system for anomalies
+        const particleGeometry = new THREE.BufferGeometry();
+        const particleCount = 200;
+        const positions = new Float32Array(particleCount * 3);
+        for (let i = 0; i < particleCount * 3; i += 3) {
+            positions[i] = (Math.random() - 0.5) * 10;
+            positions[i + 1] = (Math.random() - 0.5) * 10;
+            positions[i + 2] = (Math.random() - 0.5) * 10;
+        }
+        particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const particleMaterial = new THREE.PointsMaterial({ color: 0x00ff88, size: 0.05, transparent: true, opacity: 0.5 });
+        const particles = new THREE.Points(particleGeometry, particleMaterial);
+        scene.add(particles);
 
         // --- MATH HELPERS ---
-        function rotate4D(point, angle, distortion) {
+        function rotate4D(point, angle, distortion, threatLevel) {
             let {x, y, z, w} = point;
             
-            // Add GLITCH (Distortion) based on Backend Entropy
             if (distortion > 0) {
-                // Jitter the 4th dimension based on chaos level
                 w += (Math.random() - 0.5) * distortion * 2; 
             }
+            
+            if (threatLevel > 0) {
+                x += Math.sin(angle * threatLevel) * 0.3;
+                y += Math.cos(angle * threatLevel) * 0.3;
+            }
 
-            // Rotate XW
             let nx = x * Math.cos(angle) - w * Math.sin(angle);
             let nw = x * Math.sin(angle) + w * Math.cos(angle);
             x = nx; w = nw;
 
-            // Rotate ZW
             let nz = z * Math.cos(angle * 0.5) - w * Math.sin(angle * 0.5);
             nw = z * Math.sin(angle * 0.5) + w * Math.cos(angle * 0.5);
             z = nz; w = nw;
@@ -131,63 +240,163 @@
 
         // --- API COMMUNICATION ---
         const API_URL = "http://localhost:8000";
-        let time = 0;
 
-        async function sendCmd(endpoint) {
-            try { await fetch(`${API_URL}/${endpoint}`, { method: 'POST' }); } 
-            catch (e) { console.error("Command failed", e); }
+        async function sendCmd(endpoint, method = 'POST', params = {}) {
+            try {
+                const url = new URL(`${API_URL}/${endpoint}`);
+                Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
+                
+                const res = await fetch(url, { method });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                return await res.json();
+            } catch (e) {
+                console.error("Command failed:", e);
+                return null;
+            }
         }
 
-        async function animate() {
-            requestAnimationFrame(animate);
-            time += 0.02;
+        function triggerAttack() {
+            const attackType = document.getElementById('attack-type').value;
+            const timestamp = new Date().toLocaleTimeString();
+            
+            sendCmd(`trigger_attack/${attackType}`).then(data => {
+                if (data) {
+                    const historyDiv = document.getElementById('attack-history');
+                    const entry = document.createElement('div');
+                    entry.textContent = `[${timestamp}] ${attackType.toUpperCase()} - ${data.attack_vectors} vector(s)`;
+                    entry.style.color = '#ff6600';
+                    historyDiv.insertBefore(entry, historyDiv.firstChild);
+                    if (historyDiv.children.length > 15) historyDiv.removeChild(historyDiv.lastChild);
+                    
+                    state.attackHistory.unshift({type: attackType, time: timestamp});
+                }
+            });
+        }
 
+        function activateDefense() {
+            sendCmd('activate_defense').then(data => {
+                if (data) {
+                    const historyDiv = document.getElementById('attack-history');
+                    const entry = document.createElement('div');
+                    entry.textContent = `[${new Date().toLocaleTimeString()}] DEFENSE DEPLOYED (${(data.efficiency * 100).toFixed(0)}%)`;
+                    entry.style.color = '#00ffcc';
+                    historyDiv.insertBefore(entry, historyDiv.firstChild);
+                }
+            });
+        }
+
+        function resetSystem() {
+            sendCmd('reset_system').then(() => {
+                document.getElementById('attack-history').innerHTML = '';
+                state.attackHistory = [];
+            });
+        }
+
+        function toggleLearning() {
+            sendCmd('toggle_learning').then(data => {
+                if (data) {
+                    state.learningMode = data.learning_mode;
+                    const btn = document.getElementById('btn-learning');
+                    btn.classList.toggle('active', data.learning_mode);
+                    btn.textContent = `LEARNING: ${data.learning_mode ? 'ON' : 'OFF'}`;
+                }
+            });
+        }
+
+        async function updateTelemetry() {
             try {
-                // 1. Get Physics Data from Brain
-                const res = await fetch(`${API_URL}/telemetry?time=${time}`);
+                const res = await fetch(`${API_URL}/telemetry?time=${state.time}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
 
-                // 2. Update HUD
+                // Update HUD displays
                 const hudStatus = document.getElementById('status-display');
                 hudStatus.innerText = data.status;
                 hudStatus.style.color = data.color;
                 hudStatus.style.textShadow = `0 0 10px ${data.color}`;
                 
                 document.getElementById('entropy-val').innerText = (data.distortion * 100).toFixed(1) + "%";
+                document.getElementById('threat-val').innerText = (data.threat_level).toFixed(3);
+                document.getElementById('anomaly-val').innerText = (data.anomaly_score).toFixed(3);
+                document.getElementById('stability-val').innerText = (data.stability * 100).toFixed(0) + "%";
                 document.getElementById('defense-val').innerText = data.defense_active ? "ENGAGED" : "STANDBY";
+                document.getElementById('efficiency-val').innerText = (data.efficiency * 100).toFixed(0) + "%";
+                document.getElementById('energy-val').innerText = (data.energy).toFixed(1) + "%";
+                document.getElementById('energy-fill').style.width = data.energy + "%";
+                
                 document.getElementById('connection-warning').style.display = 'none';
+                document.getElementById('connection-status').innerText = "ONLINE";
+                document.getElementById('connection-status').style.color = "#00ffcc";
+                
+                // Store telemetry point for analysis
+                state.dataPoints.push(data.distortion);
+                if (state.dataPoints.length > 100) state.dataPoints.shift();
+                
+                // Calculate average entropy
+                if (state.dataPoints.length >= 10) {
+                    const recent = state.dataPoints.slice(-10);
+                    const avgEntropy = (recent.reduce((a, b) => a + b) / recent.length * 100).toFixed(1);
+                    document.getElementById('avg-entropy').innerText = avgEntropy + "%";
+                }
 
-                // 3. Update Visuals (Color)
-                tesseractLines.material.color.set(data.color);
+                // Update visuals
+                tesseractPrimary.material.color.set(data.color);
+                tesseractThreat.material.color.setHex(0xff0000);
+                tesseractThreat.material.opacity = Math.max(0.3, data.threat_level);
 
-                // 4. Update Geometry (Rotation + Glitch)
-                const posAttr = tesseractLines.geometry.attributes.position.array;
-                let idx = 0;
+                // Update geometry with dual effect
+                [tesseractPrimary, tesseractThreat].forEach((tesseract, idx) => {
+                    const posAttr = tesseract.geometry.attributes.position.array;
+                    let posIdx = 0;
 
-                edges.forEach(edge => {
-                    const v1 = project(rotate4D(vertices4D[edge[0]], time, data.distortion));
-                    const v2 = project(rotate4D(vertices4D[edge[1]], time, data.distortion));
+                    edges.forEach(edge => {
+                        const angle = state.time + (idx * Math.PI);
+                        const v1 = project(rotate4D(vertices4D[edge[0]], angle, data.distortion, data.threat_level));
+                        const v2 = project(rotate4D(vertices4D[edge[1]], angle, data.distortion, data.threat_level));
 
-                    posAttr[idx++] = v1.x; posAttr[idx++] = v1.y; posAttr[idx++] = v1.z;
-                    posAttr[idx++] = v2.x; posAttr[idx++] = v2.y; posAttr[idx++] = v2.z;
+                        posAttr[posIdx++] = v1.x; posAttr[posIdx++] = v1.y; posAttr[posIdx++] = v1.z;
+                        posAttr[posIdx++] = v2.x; posAttr[posIdx++] = v2.y; posAttr[posIdx++] = v2.z;
+                    });
+
+                    tesseract.geometry.attributes.position.needsUpdate = true;
                 });
 
-                tesseractLines.geometry.attributes.position.needsUpdate = true;
-                
-                // Slow ambient rotation
-                scene.rotation.y += 0.005;
+                // Update particles
+                const particlePos = particles.geometry.attributes.position.array;
+                for (let i = 0; i < particlePos.length; i += 3) {
+                    particlePos[i] += Math.sin(state.time + i) * data.anomaly_score * 0.1;
+                    particlePos[i + 1] += Math.cos(state.time + i) * data.anomaly_score * 0.1;
+                    particlePos[i + 2] += Math.sin(state.time + i * 0.5) * data.distortion * 0.05;
+                }
+                particles.geometry.attributes.position.needsUpdate = true;
+
+                // Fetch system status for info panel
+                const status = await fetch(`${API_URL}/system_status`).then(r => r.json());
+                document.getElementById('active-attacks').innerText = status.attack_count;
+                document.getElementById('panel-efficiency').innerText = (status.defense_efficiency * 100).toFixed(0) + "%";
 
             } catch (e) {
-                // PROOF OF DEPENDENCY: If server dies, visualization stops updating
                 document.getElementById('connection-warning').style.display = 'block';
+                document.getElementById('connection-status').innerText = "OFFLINE";
+                document.getElementById('connection-status').style.color = "#ff0000";
             }
+
+            state.time += 0.02;
+        }
+
+        async function animate() {
+            requestAnimationFrame(animate);
+            await updateTelemetry();
+            
+            scene.rotation.y += 0.003;
+            scene.rotation.x += 0.001;
+            particles.rotation.z += 0.001;
 
             renderer.render(scene, camera);
         }
 
         animate();
         
-        // Handle window resize
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
