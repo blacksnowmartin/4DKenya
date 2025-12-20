@@ -2,35 +2,188 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>4DKenya | Network Visualizer</title>
+    <title>4DKenya | Advanced Network Monitor</title>
     <style>
+        * { box-sizing: border-box; }
         body { margin: 0; background-color: #000; color: #00ffcc; font-family: 'Courier New', monospace; overflow: hidden; }
+        
         #hud { 
             position: absolute; top: 20px; left: 20px; z-index: 10; 
-            background: rgba(0, 20, 0, 0.8); border: 1px solid #00ffcc; padding: 20px; width: 300px; 
+            background: rgba(0, 20, 0, 0.9); border: 2px solid #00ffcc; padding: 20px; width: 420px;
+            max-height: 80vh; overflow-y: auto;
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.3);
         }
-        h1 { font-size: 18px; margin: 0 0 10px 0; border-bottom: 1px solid #444; padding-bottom: 5px; }
-        .data-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; }
-        #status-text { font-weight: bold; }
-        .bar-container { width: 100%; height: 10px; background: #222; margin-top: 10px; }
-        #load-bar { width: 0%; height: 100%; background: #00ffcc; transition: width 0.1s; }
+
+        h1 { font-size: 18px; margin: 0 0 12px 0; border-bottom: 2px solid #00ffcc; padding-bottom: 8px; }
+        h2 { font-size: 13px; margin: 12px 0 6px 0; color: #00ff88; text-transform: uppercase; letter-spacing: 1px; }
+        
+        .data-row { 
+            display: flex; justify-content: space-between; margin-bottom: 6px; 
+            font-size: 12px; border-bottom: 1px solid #1a3a3a; padding-bottom: 2px;
+        }
+        .data-value { color: #00ffcc; font-weight: bold; }
+        
+        .bar-container { 
+            width: 100%; height: 12px; background: #1a1a1a; margin: 8px 0; 
+            border: 1px solid #00ff88; position: relative; overflow: hidden;
+        }
+        
+        .bar-fill { 
+            height: 100%; background: linear-gradient(90deg, #00ff88, #00ffcc); 
+            transition: width 0.2s; text-align: right; font-size: 9px; line-height: 12px; padding-right: 3px;
+        }
+
+        .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
+        .metric-box { 
+            background: rgba(0, 255, 136, 0.05); border: 1px solid #00ff88; 
+            padding: 8px; border-radius: 3px;
+        }
+        .metric-label { font-size: 10px; color: #666; }
+        .metric-value { font-size: 14px; color: #00ffcc; font-weight: bold; }
+
+        .threat-indicator {
+            display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 5px;
+        }
+        .threat-active { background: #ff0000; box-shadow: 0 0 10px #ff0000; }
+        .threat-clear { background: #00ff88; box-shadow: 0 0 5px #00ff88; }
+
+        .protocol-list { font-size: 11px; max-height: 120px; overflow-y: auto; }
+        .protocol-item { margin-bottom: 3px; padding: 3px 0; border-bottom: 1px solid #1a3a3a; }
+        
+        .control-buttons { 
+            display: flex; gap: 10px; margin-top: 12px; 
+        }
+        button { 
+            flex: 1; padding: 8px; background: #002233; color: #00ffcc; 
+            border: 1px solid #00ffcc; cursor: pointer; font-weight: bold; border-radius: 3px;
+            transition: 0.3s;
+        }
+        button:hover { background: #00ffcc; color: #000; }
+        button.danger { background: #330000; border-color: #ff4444; color: #ff4444; }
+        button.danger:hover { background: #ff4444; color: #000; }
+
+        #analytics-panel {
+            position: absolute; top: 20px; right: 20px; z-index: 10;
+            background: rgba(0, 20, 0, 0.9); border: 2px solid #00ff88; padding: 20px; width: 350px;
+            max-height: 80vh; overflow-y: auto;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+        }
+
+        #analytics-panel h2 { color: #00ff88; }
+
+        .scrollbar::-webkit-scrollbar { width: 6px; }
+        .scrollbar::-webkit-scrollbar-track { background: rgba(0, 255, 204, 0.1); }
+        .scrollbar::-webkit-scrollbar-thumb { background: #00ffcc; border-radius: 3px; }
+
+        #hud { class: scrollbar; }
+        #analytics-panel { class: scrollbar; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
-    <div id="hud">
-        <h1>4D Network Monitor</h1>
-        <div class="data-row"><span>CONNECTION:</span> <span id="conn-status" style="color:red">OFFLINE</span></div>
-        <div class="data-row"><span>AI STATUS:</span> <span id="status-text">WAITING...</span></div>
-        <div class="data-row"><span>TENSOR VAL:</span> <span id="tensor-val">0.0000</span></div>
+
+    <div id="hud" class="scrollbar">
+        <h1>📡 Advanced Network Monitor</h1>
         
-        <div class="bar-container">
-            <div id="load-bar"></div>
+        <div class="data-row">
+            <span>CONNECTION:</span> 
+            <span id="conn-status" class="data-value" style="color:red">OFFLINE</span>
         </div>
-        <p style="font-size:10px; color:#666; margin-top:10px;">* If tesseract stops, server is dead.</p>
+        <div class="data-row">
+            <span>NETWORK STATUS:</span> 
+            <span id="status-text" class="data-value">WAITING...</span>
+        </div>
+
+        <h2>Health Metrics</h2>
+        <div class="data-row">
+            <span>HEALTH:</span>
+            <span id="health-val" class="data-value">0%</span>
+        </div>
+        <div class="bar-container">
+            <div class="bar-fill" id="health-bar" style="width: 0%"></div>
+        </div>
+
+        <div class="metric-grid">
+            <div class="metric-box">
+                <div class="metric-label">LATENCY</div>
+                <div class="metric-value" id="latency-val">0ms</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-label">THROUGHPUT</div>
+                <div class="metric-value" id="throughput-val">0 KB/s</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-label">JITTER</div>
+                <div class="metric-value" id="jitter-val">0ms</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-label">PACKET LOSS</div>
+                <div class="metric-value" id="loss-val">0%</div>
+            </div>
+        </div>
+
+        <h2>Threat Level</h2>
+        <div class="data-row">
+            <span>ANOMALY:</span>
+            <span class="threat-indicator" id="threat-indicator"></span>
+            <span id="anomaly-val" class="data-value">0.00</span>
+        </div>
+        <div class="bar-container">
+            <div class="bar-fill" id="anomaly-bar" style="width: 0%; background: linear-gradient(90deg, #ff6600, #ff0000);"></div>
+        </div>
+
+        <h2>Active Threats</h2>
+        <div id="threats-list" style="font-size: 11px; color: #ff6600; min-height: 30px;">
+            <span style="color: #666;">No threats detected</span>
+        </div>
+
+        <h2>Protocol Distribution</h2>
+        <div class="protocol-list" id="protocol-list"></div>
+
+        <div class="control-buttons">
+            <button onclick="triggerDDoS()">⚠️ SIM DDoS</button>
+            <button onclick="stopAttack()">✓ STOP</button>
+        </div>
+    </div>
+
+    <div id="analytics-panel" class="scrollbar">
+        <h2>📊 Live Analytics</h2>
+        
+        <div class="data-row">
+            <span>ACTIVE CONNECTIONS:</span>
+            <span id="connections-val" class="data-value">0</span>
+        </div>
+        <div class="data-row">
+            <span>CONGESTION:</span>
+            <span id="congestion-val" class="data-value">0%</span>
+        </div>
+        <div class="bar-container">
+            <div class="bar-fill" id="congestion-bar" style="width: 0%"></div>
+        </div>
+
+        <div class="data-row">
+            <span>THREATS DETECTED:</span>
+            <span id="threat-count" class="data-value">0</span>
+        </div>
+        <div class="data-row">
+            <span>DDoS ACTIVE:</span>
+            <span id="ddos-status" class="data-value" style="color: #00ff88;">NO</span>
+        </div>
+
+        <h2>🔍 Network Snapshot</h2>
+        <div id="network-snapshot" style="font-size: 10px; background: rgba(0, 0, 0, 0.5); padding: 10px; border-radius: 3px; max-height: 300px; overflow-y: auto;">
+            <span style="color: #666;">Waiting for data...</span>
+        </div>
     </div>
 
     <script>
+        const state = {
+            time: 0,
+            lastData: null,
+            history: [],
+            refreshRate: 0.1
+        };
+
         // --- THREE.JS SETUP ---
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
@@ -39,70 +192,156 @@
         document.body.appendChild(renderer.domElement);
         camera.position.z = 4;
 
-        // --- CREATE TESSERACT (WIREFRAME) ---
-        const geometry = new THREE.BoxGeometry(1.5, 1.5, 1.5);
-        const edges = new THREE.EdgesGeometry(geometry);
-        const material = new THREE.LineBasicMaterial({ color: 0x00ffcc, linewidth: 2 });
-        const tesseract = new THREE.LineSegments(edges, material);
+        // --- ADVANCED VISUALIZATION: DUAL CUBE SYSTEM ---
+        const createCube = (size, color) => {
+            const geo = new THREE.BoxGeometry(size, size, size);
+            const edges = new THREE.EdgesGeometry(geo);
+            const mat = new THREE.LineBasicMaterial({ color, linewidth: 2 });
+            return new THREE.LineSegments(edges, mat);
+        };
+
+        const mainCube = createCube(1.5, 0x00ffcc);
+        const innerCube = createCube(0.8, 0x00ffcc);
+        const threatCube = createCube(2.5, 0xff0000);
         
-        // Add an inner cube to make it look "4D"
-        const innerGeo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
-        const innerEdges = new THREE.EdgesGeometry(innerGeo);
-        const innerCube = new THREE.LineSegments(innerEdges, material);
-        
-        tesseract.add(innerCube); // Child of the main cube
-        scene.add(tesseract);
+        mainCube.add(innerCube);
+        scene.add(mainCube);
+        scene.add(threatCube);
 
-        // --- THE LOOP ---
-        let time = 0;
-        const API_URL = "http://localhost:8000/network_pulse";
+        // Particle system for network packets
+        const particleCount = 300;
+        const particleGeo = new THREE.BufferGeometry();
+        const positions = new Float32Array(particleCount * 3);
+        for (let i = 0; i < particleCount * 3; i += 3) {
+            positions[i] = (Math.random() - 0.5) * 8;
+            positions[i + 1] = (Math.random() - 0.5) * 8;
+            positions[i + 2] = (Math.random() - 0.5) * 8;
+        }
+        particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const particleMat = new THREE.PointsMaterial({ color: 0x00ff88, size: 0.03, transparent: true, opacity: 0.6 });
+        const particles = new THREE.Points(particleGeo, particleMat);
+        scene.add(particles);
 
-        async function animate() {
-            requestAnimationFrame(animate);
-            time += 0.05;
+        const API_URL = "http://localhost:8000";
 
-            // 1. TALK TO PYTHON
+        async function triggerDDoS() {
             try {
-                const response = await fetch(`${API_URL}?time=${time}`);
+                await fetch(`${API_URL}/trigger_ddos`, { method: 'POST' });
+            } catch (e) {
+                console.error("Error:", e);
+            }
+        }
+
+        async function stopAttack() {
+            try {
+                await fetch(`${API_URL}/stop_attack`, { method: 'POST' });
+            } catch (e) {
+                console.error("Error:", e);
+            }
+        }
+
+        async function updateDisplay() {
+            try {
+                const response = await fetch(`${API_URL}/network_pulse?time=${state.time}`);
                 const data = await response.json();
+                state.lastData = data;
+                state.history.push(data);
+                if (state.history.length > 100) state.history.shift();
 
-                // 2. VISUALIZE SERVER DATA
-                // The server tells us the color (Green/Orange/Red)
-                tesseract.material.color.set(data.color);
-                innerCube.material.color.set(data.color);
-
-                // The server tells us the "Load" (Rotation Speed + Size)
-                // High Load = Fast Spin + Big Pulse
-                const speed = 0.01 + (data.load * 0.05); 
-                tesseract.rotation.x += speed;
-                tesseract.rotation.y += speed;
-                
-                // Pulse effect based on tensor value
-                const scale = 1 + (data.load * 0.3);
-                tesseract.scale.set(scale, scale, scale);
-
-                // Update HUD
+                // Update main HUD
                 document.getElementById('conn-status').innerText = "CONNECTED";
                 document.getElementById('conn-status').style.color = "#00ff00";
                 document.getElementById('status-text').innerText = data.status;
                 document.getElementById('status-text').style.color = data.color;
-                document.getElementById('tensor-val').innerText = data.server_message;
-                document.getElementById('load-bar').style.width = (data.load * 100) + "%";
-                document.getElementById('load-bar').style.background = data.color;
+                document.getElementById('health-val').innerText = data.health.toFixed(1) + "%";
+                document.getElementById('health-bar').style.width = data.health + "%";
+                document.getElementById('health-bar').style.background = data.health > 70 ? "linear-gradient(90deg, #00ff88, #00ffcc)" : 
+                                                                       data.health > 40 ? "linear-gradient(90deg, #ffaa00, #ff6600)" :
+                                                                       "linear-gradient(90deg, #ff6600, #ff0000)";
+
+                document.getElementById('latency-val').innerText = data.latency.toFixed(1) + "ms";
+                document.getElementById('throughput-val').innerText = data.throughput.toFixed(1) + " KB/s";
+                document.getElementById('jitter-val').innerText = data.jitter.toFixed(1) + "ms";
+                document.getElementById('loss-val').innerText = (data.loss_rate * 100).toFixed(2) + "%";
+
+                // Threat indicator
+                const indicator = document.getElementById('threat-indicator');
+                indicator.className = "threat-indicator " + (data.threat_count > 0 ? "threat-active" : "threat-clear");
+                document.getElementById('anomaly-val').innerText = data.anomaly_score.toFixed(3);
+                document.getElementById('anomaly-bar').style.width = (data.anomaly_score * 100) + "%";
+
+                // Threats
+                const threatsList = document.getElementById('threats-list');
+                if (data.threat_count > 0) {
+                    threatsList.innerHTML = `<span style="color: #ff0000;">⚠️ ${data.threat_count} THREAT(S) DETECTED</span>`;
+                } else {
+                    threatsList.innerHTML = `<span style="color: #00ff88;">✓ All Clear</span>`;
+                }
+
+                // Protocol distribution
+                const protocolList = document.getElementById('protocol-list');
+                let html = '';
+                for (const [proto, count] of Object.entries(data.protocol_distribution || {})) {
+                    const percent = (count / (data.active_connections || 1) * 100).toFixed(1);
+                    html += `<div class="protocol-item">${proto}: ${count} (${percent}%)</div>`;
+                }
+                protocolList.innerHTML = html || '<span style="color: #666;">No data</span>';
+
+                // Analytics panel
+                document.getElementById('connections-val').innerText = data.active_connections;
+                document.getElementById('congestion-val').innerText = (data.congestion * 100).toFixed(1) + "%";
+                document.getElementById('congestion-bar').style.width = (data.congestion * 100) + "%";
+                document.getElementById('threat-count').innerText = data.threat_count;
+                document.getElementById('ddos-status').innerText = data.load > 0.5 ? "YES" : "NO";
+                document.getElementById('ddos-status').style.color = data.load > 0.5 ? "#ff0000" : "#00ff88";
+
+                // Update visualization
+                mainCube.material.color.set(data.color);
+                innerCube.material.color.set(data.color);
+                threatCube.material.opacity = Math.max(0.2, data.anomaly_score);
+
+                const speed = 0.01 + (data.load * 0.08);
+                mainCube.rotation.x += speed;
+                mainCube.rotation.y += speed;
+                threatCube.rotation.x -= speed * 0.5;
+                threatCube.rotation.y -= speed * 0.5;
+
+                const scale = 1 + (data.load * 0.3);
+                mainCube.scale.set(scale, scale, scale);
+
+                // Update particles based on throughput
+                const pos = particles.geometry.attributes.position.array;
+                for (let i = 0; i < pos.length; i += 3) {
+                    pos[i] += Math.sin(state.time + i) * data.throughput * 0.001;
+                    pos[i + 1] += Math.cos(state.time + i) * data.throughput * 0.001;
+                    pos[i + 2] += (Math.random() - 0.5) * data.anomaly_score * 0.1;
+                }
+                particles.geometry.attributes.position.needsUpdate = true;
 
             } catch (error) {
-                // 3. FAILURE STATE
-                // If server is off, the simulation FREEZES. 
-                // This proves the frontend is helpless without the backend.
                 document.getElementById('conn-status').innerText = "CONNECTION LOST";
-                document.getElementById('conn-status').style.color = "red";
-                // We do NOT rotate the cube here. It freezes.
+                document.getElementById('conn-status').style.color = "#ff0000";
             }
 
+            state.time += state.refreshRate;
+        }
+
+        async function animate() {
+            requestAnimationFrame(animate);
+            await updateDisplay();
+            scene.rotation.z += 0.0005;
+            particles.rotation.z += 0.003;
             renderer.render(scene, camera);
         }
 
         animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
     </script>
+
 </body>
 </html>
