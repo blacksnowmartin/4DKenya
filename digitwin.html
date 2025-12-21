@@ -7,30 +7,43 @@
         body { margin: 0; background-color: #000510; overflow: hidden; font-family: 'Segoe UI', monospace; }
         
         #hud {
-            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-            width: 400px; text-align: center;
-            background: linear-gradient(90deg, transparent, rgba(0,0,0,0.8), transparent);
-            padding: 20px; color: #00ffff; pointer-events: none;
+            position: fixed; bottom: 10px; left: 10px; width: 350px;
+            background: rgba(0, 10, 30, 0.95); border: 2px solid #00ff00;
+            padding: 15px; color: #00ff00; font-size: 11px;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3); max-height: 200px; overflow-y: auto;
+        }
+        
+        #metrics {
+            position: fixed; top: 10px; right: 10px; width: 280px;
+            background: rgba(0, 10, 30, 0.95); border: 2px solid #00aaff;
+            padding: 15px; color: #00aaff; font-size: 10px;
+            box-shadow: 0 0 20px rgba(0, 170, 255, 0.3); max-height: 300px; overflow-y: auto;
         }
         
         #controls {
-            position: absolute; top: 20px; right: 20px; width: 150px;
+            position: fixed; top: 10px; left: 10px; width: 140px;
+        }
+        
+        .metric-row {
+            display: flex; justify-content: space-between; margin: 4px 0;
+            border-bottom: 1px solid rgba(0, 170, 255, 0.2); padding: 2px 0;
         }
 
         button {
-            width: 100%; background: rgba(0, 255, 255, 0.1); border: 1px solid #00ffff;
-            color: #00ffff; padding: 10px; margin-bottom: 5px; cursor: pointer;
-            text-transform: uppercase; font-size: 10px; letter-spacing: 2px;
-            transition: 0.3s;
+            width: 100%; background: rgba(0, 255, 200, 0.1); border: 1px solid #00ffc8;
+            color: #00ffc8; padding: 8px; margin-bottom: 5px; cursor: pointer;
+            text-transform: uppercase; font-size: 9px; letter-spacing: 1px;
+            transition: 0.3s; border-radius: 2px;
         }
-        button:hover { background: #00ffff; color: #000; box-shadow: 0 0 20px #00ffff; }
+        button:hover { background: #00ffc8; color: #000; box-shadow: 0 0 15px #00ffc8; }
+        button:active { transform: scale(0.95); }
 
         .scanline {
-            position: fixed; top: 0; left: 0; width: 100%; height: 5px;
-            background: rgba(0, 255, 255, 0.3); opacity: 0.5;
-            animation: scan 3s linear infinite; pointer-events: none;
+            position: fixed; top: 0; left: 0; width: 100%; height: 3px;
+            background: rgba(0, 255, 200, 0.2); opacity: 0.5;
+            animation: scan 2s linear infinite; pointer-events: none;
         }
-        @keyframes scan { 0% {top: -10%;} 100% {top: 110%;} }
+        @keyframes scan { 0% {top: -5%;} 100% {top: 105%;} }
     </style>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -47,151 +60,207 @@
     <div class="scanline"></div>
 
     <div id="controls">
-        <button onclick="trigger('boost')">Injest Capital</button>
-        <button onclick="trigger('ddos')">Simulate DDoS</button>
-        <button onclick="trigger('wipe')">System Purge</button>
+        <button onclick="trigger('infrastructure_boost')">Infrastructure</button>
+        <button onclick="trigger('population_surge')">Population</button>
+        <button onclick="trigger('ddos')">Traffic Surge</button>
+        <button onclick="trigger('clean_air')">Clean Air</button>
+        <button onclick="trigger('blackout')">Blackout</button>
+        <button onclick="trigger('reset')">Reset City</button>
     </div>
 
     <div id="hud">
-        <h1 style="margin:0; font-size:20px; letter-spacing:5px;">NAIROBI NEXUS</h1>
-        <div id="status" style="font-size:10px; opacity:0.7;">ESTABLISHING NEURAL LINK...</div>
+        <strong style="font-size:12px; color:#00ff00;">● NEXUS CONTROL</strong>
+        <div id="status" style="font-size:9px; color:#00ff00; margin-top:5px;">INITIALIZING...</div>
+        <div id="tick" style="font-size:9px; margin-top:3px;"></div>
+        <div id="anomalies" style="font-size:9px; color:#ffaa00; margin-top:5px; max-height:80px; overflow-y:auto;"></div>
+    </div>
+
+    <div id="metrics">
+        <strong style="font-size:12px; color:#00aaff;">⬢ CITY METRICS</strong>
+        <div id="metricsList" style="margin-top:8px;"></div>
     </div>
 
     <script>
         // --- CONFIG ---
         const GRID = 24;
         const API = "http://localhost:8000";
+        let lastData = null;
 
         // --- SCENE SETUP ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x000510);
         scene.fog = new THREE.FogExp2(0x000510, 0.035);
 
-        // ISOMETRIC CAMERA
         const aspect = window.innerWidth / window.innerHeight;
-        const d = 18;
+        const d = 20;
         const camera = new THREE.OrthographicCamera(-d*aspect, d*aspect, d, -d, 1, 1000);
-        camera.position.set(20, 20, 20);
+        camera.position.set(22, 22, 22);
         camera.lookAt(scene.position);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        // Important for the glow effect
         renderer.toneMapping = THREE.ReinhardToneMapping;
         document.body.appendChild(renderer.domElement);
 
-        // --- COMPOSER (The FX Engine) ---
         const renderScene = new THREE.RenderPass(scene, camera);
-        // Resolution, Strength, Radius, Threshold
-        const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+        const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 2.0, 0.5, 0.8);
         bloomPass.threshold = 0;
-        bloomPass.strength = 1.2; // GLOW STRENGTH
-        bloomPass.radius = 0.5;
+        bloomPass.strength = 1.5;
+        bloomPass.radius = 0.6;
 
         const composer = new THREE.EffectComposer(renderer);
         composer.addPass(renderScene);
         composer.addPass(bloomPass);
 
-        // --- OBJECTS ---
-        
-        // 1. THE FLOOR GRID
-        const gridHelper = new THREE.GridHelper(GRID, GRID, 0x00ffff, 0x111122);
+        // --- MESHES ---
+        const gridHelper = new THREE.GridHelper(GRID, GRID, 0x00aa55, 0x111133);
         scene.add(gridHelper);
 
-        // 2. THE BUILDINGS (Instanced Mesh)
-        const bGeo = new THREE.BoxGeometry(0.9, 1, 0.9);
-        // MeshStandard allows it to react to light and glow
-        const bMat = new THREE.MeshStandardMaterial({
-            color: 0x000000, 
-            emissive: 0x000000, // Will change dynamically
-            roughness: 0.1,
-            metalness: 0.8
-        });
+        // Buildings (Infrastructure Layer)
+        const bGeo = new THREE.BoxGeometry(0.85, 1, 0.85);
+        const bMat = new THREE.MeshStandardMaterial({ color: 0x0077ff, emissive: 0x0055cc, roughness: 0.1, metalness: 0.7 });
         const buildings = new THREE.InstancedMesh(bGeo, bMat, GRID*GRID);
         scene.add(buildings);
 
-        // 3. THE DATA RAIN (Particles)
+        // Population (Red floating spheres)
+        const popGeo = new THREE.SphereGeometry(0.3, 6, 6);
+        const popMat = new THREE.MeshStandardMaterial({ color: 0xff3333, emissive: 0xff0000, roughness: 0.2, metalness: 0.6 });
+        const population = new THREE.InstancedMesh(popGeo, popMat, GRID*GRID);
+        scene.add(population);
+
+        // Traffic Particles (Cyan data rain)
         const pGeo = new THREE.BufferGeometry();
         const pPos = new Float32Array(GRID*GRID * 3);
         pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
-        const pMat = new THREE.PointsMaterial({ color: 0x00ffff, size: 0.15, transparent: true, opacity: 0.8 });
+        const pMat = new THREE.PointsMaterial({ color: 0x00ffff, size: 0.2, transparent: true, opacity: 0.9 });
         const particles = new THREE.Points(pGeo, pMat);
         scene.add(particles);
+
+        // Pollution Cloud (Yellow/Red semi-transparent)
+        const polGeo = new THREE.SphereGeometry(0.25, 4, 4);
+        const polMat = new THREE.MeshStandardMaterial({ color: 0xffaa00, emissive: 0xffaa00, transparent: true, opacity: 0.4, roughness: 0.8 });
+        const pollution = new THREE.InstancedMesh(polGeo, polMat, GRID*GRID);
+        scene.add(pollution);
 
         const dummy = new THREE.Object3D();
         const color = new THREE.Color();
 
-        // --- MAIN LOOP ---
+        // --- UPDATE FUNCTION ---
         async function updateNexus() {
             try {
                 const res = await fetch(`${API}/nexus_pulse`);
                 const data = await res.json();
-                
-                const buildData = data.buildings; // Channel 0
-                const trafData = data.traffic;    // Channel 1
+                lastData = data;
+
+                const buildData = data.buildings;
+                const popData = data.population;
+                const trafData = data.traffic;
+                const pollData = data.pollution;
+                const energyData = data.energy;
+                const metrics = data.metrics;
 
                 let idx = 0;
                 const particlePositions = particles.geometry.attributes.position.array;
 
                 for (let x = 0; x < GRID; x++) {
                     for (let z = 0; z < GRID; z++) {
-                        const h = buildData[idx]; // Height
-                        const t = trafData[idx];  // Traffic/Heat
+                        const b = buildData[idx];
+                        const p = popData[idx];
+                        const t = trafData[idx];
+                        const poll = pollData[idx];
+                        const e = energyData[idx];
 
-                        // -- UPDATE BUILDINGS --
-                        dummy.position.set(x - GRID/2, h * 3 / 2, z - GRID/2);
-                        dummy.scale.set(1, Math.max(0.1, h * 3), 1);
+                        // --- BUILDINGS (Blue towers) ---
+                        dummy.position.set(x - GRID/2, b * 3.5, z - GRID/2);
+                        dummy.scale.set(1, Math.max(0.05, b * 4), 1);
                         dummy.updateMatrix();
                         buildings.setMatrixAt(idx, dummy.matrix);
-
-                        // Dynamic Coloring based on Traffic (Heat)
-                        // If Traffic is high -> Turn Gold/White. If Low -> Blue.
-                        color.setHSL(0.6 - (t * 0.5), 1.0, 0.1 + (t * 2.0)); 
+                        color.setHSL(0.55 + (e * 0.1), 0.8, 0.3 + (e * 0.4));
                         buildings.setColorAt(idx, color);
 
-                        // -- UPDATE PARTICLES (DATA RAIN) --
-                        // Particles float above the buildings based on traffic intensity
-                        particlePositions[idx*3] = x - GRID/2;     // X
-                        // If traffic is high, particle flies high
-                        particlePositions[idx*3+1] = (h*3) + (t*4); // Y
-                        particlePositions[idx*3+2] = z - GRID/2;   // Z
+                        // --- POPULATION (Red spheres above buildings) ---
+                        dummy.position.set(x - GRID/2, (b * 3.5) + (p * 2), z - GRID/2);
+                        dummy.scale.set(Math.max(0.1, p * 2), Math.max(0.1, p * 2), Math.max(0.1, p * 2));
+                        dummy.updateMatrix();
+                        population.setMatrixAt(idx, dummy.matrix);
+                        color.setHSL(0.0, Math.max(0.5, p), Math.max(0.2, p * 0.8));
+                        population.setColorAt(idx, color);
+
+                        // --- TRAFFIC PARTICLES (Cyan rain) ---
+                        particlePositions[idx*3] = x - GRID/2;
+                        particlePositions[idx*3+1] = (b * 3.5) + (t * 5);
+                        particlePositions[idx*3+2] = z - GRID/2;
+
+                        // --- POLLUTION (Yellow semi-transparent spheres) ---
+                        dummy.position.set(x - GRID/2, (b * 3.5) + (poll * 1.5), z - GRID/2);
+                        dummy.scale.set(Math.max(0.05, poll * 1.8), Math.max(0.05, poll * 1.8), Math.max(0.05, poll * 1.8));
+                        dummy.updateMatrix();
+                        pollution.setMatrixAt(idx, dummy.matrix);
+                        color.setHSL(0.1 + (poll * 0.05), 1.0, 0.4 + (poll * 0.3));
+                        pollution.setColorAt(idx, color);
 
                         idx++;
                     }
                 }
-                
+
                 buildings.instanceMatrix.needsUpdate = true;
                 buildings.instanceColor.needsUpdate = true;
+                population.instanceMatrix.needsUpdate = true;
+                population.instanceColor.needsUpdate = true;
+                pollution.instanceMatrix.needsUpdate = true;
+                pollution.instanceColor.needsUpdate = true;
                 particles.geometry.attributes.position.needsUpdate = true;
 
-                document.getElementById('status').innerText = "● LIVE NEURAL FEED CONNECTED";
-                document.getElementById('status').style.color = "#00ffff";
+                // --- UPDATE HUD ---
+                document.getElementById('status').innerText = "✓ LIVE FEED";
+                document.getElementById('status').style.color = "#00ff00";
+                document.getElementById('tick').innerText = `Tick: ${data.tick}`;
 
-            } catch(e) { 
-                document.getElementById('status').innerText = "⚠ SIGNAL LOST";
-                document.getElementById('status').style.color = "red";
+                // --- UPDATE METRICS DISPLAY ---
+                const mList = document.getElementById('metricsList');
+                mList.innerHTML = `
+                    <div class="metric-row"><span>Infrastructure</span><span>${(metrics.avg_infrastructure * 100).toFixed(0)}%</span></div>
+                    <div class="metric-row"><span>Population</span><span>${(metrics.avg_population * 100).toFixed(0)}%</span></div>
+                    <div class="metric-row"><span>Traffic</span><span>${(metrics.avg_traffic * 100).toFixed(0)}%</span></div>
+                    <div class="metric-row"><span>Pollution</span><span>${(metrics.avg_pollution * 100).toFixed(0)}%</span></div>
+                    <div class="metric-row"><span>Energy</span><span>${(metrics.avg_energy * 100).toFixed(0)}%</span></div>
+                `;
+
+                // --- UPDATE ANOMALIES ---
+                const status = await fetch(`${API}/nexus_status`).then(r => r.json());
+                const anomDiv = document.getElementById('anomalies');
+                if (status.recent_anomalies && status.recent_anomalies.length > 0) {
+                    anomDiv.innerHTML = `<strong style="color:#ffaa00;">⚠ ANOMALIES:</strong><br/>` +
+                        status.recent_anomalies.slice(-3).map(a => `${a.type}: ${(a.value * 100).toFixed(0)}%`).join('<br/>');
+                } else {
+                    anomDiv.innerHTML = "<span style='color:#00ff00;'>✓ No anomalies</span>";
+                }
+
+            } catch(e) {
+                document.getElementById('status').innerText = "✗ OFFLINE";
+                document.getElementById('status').style.color = "#ff0000";
             }
         }
 
         function animate() {
             requestAnimationFrame(animate);
             updateNexus();
-            
-            // Rotate scene slowly
-            scene.rotation.y += 0.002;
-            
-            // Render via Composer (for Glow), not just Renderer
+            scene.rotation.y += 0.0015;
             composer.render();
         }
 
         animate();
 
-        async function trigger(t) { await fetch(`${API}/hack_event?type=${t}`, { method: 'POST' }); }
-        
+        async function trigger(t) {
+            await fetch(`${API}/hack_event?type=${t}`, { method: 'POST' });
+        }
+
         window.addEventListener('resize', () => {
             const aspect = window.innerWidth / window.innerHeight;
-            camera.left = -d * aspect; camera.right = d * aspect;
-            camera.top = d; camera.bottom = -d;
+            camera.left = -d * aspect;
+            camera.right = d * aspect;
+            camera.top = d;
+            camera.bottom = -d;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
             composer.setSize(window.innerWidth, window.innerHeight);
