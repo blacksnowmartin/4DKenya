@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Nairobi 4.0 | Digital Twin</title>
+    <style>
+        body { margin: 0; background-color: #0b1026; overflow: hidden; font-family: 'Courier New', monospace; }
+        
+        #hud {
+            position: absolute; top: 20px; left: 20px; width: 300px;
+            background: rgba(0, 10, 30, 0.9); border: 1px solid #00ffff;
+            padding: 20px; color: #00ffff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
+        }
+        
+        h1 { margin: 0; font-size: 20px; border-bottom: 1px solid #005555; padding-bottom: 10px; margin-bottom: 10px; }
+        
+        button {
+            width: 48%; padding: 10px; border: none; font-weight: bold; cursor: pointer;
+            margin-right: 2%; margin-top: 10px; transition: 0.2s;
+        }
+        .btn-surge { background: #00ffff; color: #000; }
+        .btn-surge:hover { background: #fff; box-shadow: 0 0 15px #00ffff; }
+        
+        .btn-kill { background: #ff0055; color: #fff; }
+        .btn-kill:hover { background: #ff5555; box-shadow: 0 0 15px #ff0055; }
+
+        #status { font-size: 12px; margin-top: 15px; color: #888; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+    <div id="hud">
+        <h1>NAIROBI TWIN</h1>
+        <div style="font-size: 11px; margin: 3px 0;">TRAFFIC: <span id="traffic-val">0%</span></div>
+        <div style="height: 4px; background: #222; margin-bottom: 8px;"><div id="traffic-bar" style="height:100%; width:0%; background:#00ffff;"></div></div>
+        
+        <div style="font-size: 11px; margin: 3px 0;">POPULATION: <span id="pop-val">0%</span></div>
+        <div style="height: 4px; background: #222; margin-bottom: 8px;"><div id="pop-bar" style="height:100%; width:0%; background:#ff3333;"></div></div>
+        
+        <div style="font-size: 11px; margin: 3px 0;">POWER: <span id="power-val">0%</span></div>
+        <div style="height: 4px; background: #222; margin-bottom: 8px;"><div id="power-bar" style="height:100%; width:0%; background:#ffff00;"></div></div>
+        
+        <div style="font-size: 11px; margin: 3px 0;">HEAT: <span id="heat-val">0%</span></div>
+        <div style="height: 4px; background: #222; margin-bottom: 8px;"><div id="heat-bar" style="height:100%; width:0%; background:#ff6600;"></div></div>
+        
+        <button class="btn-surge" onclick="trigger('surge')" style="width: 100%; margin-top: 5px;">TRAFFIC SURGE</button>
+        <button class="btn-surge" onclick="trigger('migration')" style="width: 100%; background:#ff9900; margin-top: 2px;">MIGRATION</button>
+        <button class="btn-kill" onclick="trigger('blackout')" style="width: 100%; margin-top: 2px;">BLACKOUT</button>
+        <button class="btn-surge" onclick="trigger('cool')" style="width: 100%; background:#00ccff; margin-top: 2px;">COOL CITY</button>
+        <button class="btn-kill" onclick="trigger('reset')" style="width: 100%; background:#666; margin-top: 2px;">RESET</button>
+        
+        <div id="anomalies" style="font-size: 10px; margin-top: 8px; color: #ffaa00; max-height: 60px; overflow-y: auto;"></div>
+        <div id="status" style="margin-top: 5px;">CONNECTING...</div>
+    </div>
+
+    <script>
+        // --- SETUP ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0b1026);
+        
+        const aspect = window.innerWidth / window.innerHeight;
+        const d = 22;
+        const camera = new THREE.OrthographicCamera(-d * aspect, d * aspect, d, -d, 1, 1000);
+        camera.position.set(22, 22, 22);
+        camera.lookAt(scene.position);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+        
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+        dirLight.position.set(15, 25, 10);
+        scene.add(dirLight);
+
+        const gridHelper = new THREE.GridHelper(20, 20, 0x00aa55, 0x003344);
+        scene.add(gridHelper);
+
+        // --- VISUALIZATION LAYERS ---
+        const GRID_DIM = 20;
+        const dummy = new THREE.Object3D();
+        const color = new THREE.Color();
+        
+        // Layer 1: Buildings (blue boxes - infrastructure)
+        const buildGeo = new THREE.BoxGeometry(0.8, 1, 0.8);
+        const buildMat = new THREE.MeshLambertMaterial({ color: 0x0077ff });
+        const buildings = new THREE.InstancedMesh(buildGeo, buildMat, GRID_DIM * GRID_DIM);
+        scene.add(buildings);
+        
+        // Layer 2: Population (red spheres - people)
+        const popGeo = new THREE.SphereGeometry(0.25, 6, 6);
+        const popMat = new THREE.MeshLambertMaterial({ color: 0xff3333 });
+        const population = new THREE.InstancedMesh(popGeo, popMat, GRID_DIM * GRID_DIM);
+        scene.add(population);
+        
+        // Layer 3: Traffic (cyan particles - movement)
+        const traffGeo = new THREE.BufferGeometry();
+        const traffPos = new Float32Array(GRID_DIM * GRID_DIM * 3);
+        traffGeo.setAttribute('position', new THREE.BufferAttribute(traffPos, 3));
+        const traffMat = new THREE.PointsMaterial({ color: 0x00ffff, size: 0.15, transparent: true });
+        const traffic = new THREE.Points(traffGeo, traffMat);
+        scene.add(traffic);
+        
+        // Layer 4: Power (yellow cubes - energy)
+        const powerGeo = new THREE.BoxGeometry(0.3, 0.3, 0.3);
+        const powerMat = new THREE.MeshLambertMaterial({ color: 0xffff00 });
+        const power = new THREE.InstancedMesh(powerGeo, powerMat, GRID_DIM * GRID_DIM);
+        scene.add(power);
+        
+        // Layer 5: Heat (orange semi-transparent - pollution)
+        const heatGeo = new THREE.SphereGeometry(0.2, 4, 4);
+        const heatMat = new THREE.MeshLambertMaterial({ color: 0xff6600, transparent: true, opacity: 0.5 });
+        const heat = new THREE.InstancedMesh(heatGeo, heatMat, GRID_DIM * GRID_DIM);
+        scene.add(heat);
+
+        const API_URL = "http://localhost:8000";
+        let lastData = null;
+
+        async function updateCity() {
+            try {
+                const res = await fetch(`${API_URL}/city_pulse`);
+                const data = await res.json();
+                lastData = data;
+                
+                const buildData = data.buildings;
+                const popData = data.population;
+                const traffData = data.traffic;
+                const powerData = data.power;
+                const heatData = data.heat;
+                const metrics = data.metrics;
+                
+                const traffPos = traffic.geometry.attributes.position.array;
+                let idx = 0;
+
+                for (let x = 0; x < GRID_DIM; x++) {
+                    for (let z = 0; z < GRID_DIM; z++) {
+                        const b = buildData[idx];
+                        const p = popData[idx];
+                        const t = traffData[idx];
+                        const pw = powerData[idx];
+                        const h = heatData[idx];
+
+                        // --- BUILDINGS (Blue towers, height from infrastructure) ---
+                        dummy.position.set(x - GRID_DIM/2 + 0.5, b * 4, z - GRID_DIM/2 + 0.5);
+                        dummy.scale.set(1, Math.max(0.1, b * 5), 1);
+                        dummy.updateMatrix();
+                        buildings.setMatrixAt(idx, dummy.matrix);
+                        color.setHSL(0.55, 0.8, 0.3 + (b * 0.4));
+                        buildings.setColorAt(idx, color);
+
+                        // --- POPULATION (Red spheres above buildings) ---
+                        dummy.position.set(x - GRID_DIM/2 + 0.5, (b * 4) + (p * 2.5), z - GRID_DIM/2 + 0.5);
+                        dummy.scale.set(Math.max(0.05, p * 1.5), Math.max(0.05, p * 1.5), Math.max(0.05, p * 1.5));
+                        dummy.updateMatrix();
+                        population.setMatrixAt(idx, dummy.matrix);
+                        color.setHSL(0.0, Math.max(0.5, p), Math.max(0.2, p * 0.8));
+                        population.setColorAt(idx, color);
+
+                        // --- TRAFFIC (Cyan particles floating) ---
+                        traffPos[idx*3] = x - GRID_DIM/2 + 0.5;
+                        traffPos[idx*3+1] = (b * 4) + (t * 3);
+                        traffPos[idx*3+2] = z - GRID_DIM/2 + 0.5;
+
+                        // --- POWER (Yellow indicators) ---
+                        dummy.position.set(x - GRID_DIM/2 + 0.5, (b * 4) + 0.5, z - GRID_DIM/2 + 0.5);
+                        dummy.scale.set(Math.max(0.05, pw * 0.8), Math.max(0.05, pw * 0.8), Math.max(0.05, pw * 0.8));
+                        dummy.updateMatrix();
+                        power.setMatrixAt(idx, dummy.matrix);
+                        color.setHSL(0.15, 1.0, 0.4 + (pw * 0.4));
+                        power.setColorAt(idx, color);
+
+                        // --- HEAT (Orange haze) ---
+                        dummy.position.set(x - GRID_DIM/2 + 0.5, (b * 4) + (h * 1.5), z - GRID_DIM/2 + 0.5);
+                        dummy.scale.set(Math.max(0.05, h * 1.2), Math.max(0.05, h * 1.2), Math.max(0.05, h * 1.2));
+                        dummy.updateMatrix();
+                        heat.setMatrixAt(idx, dummy.matrix);
+                        color.setHSL(0.05 + (h * 0.05), 1.0, 0.4 + (h * 0.3));
+                        heat.setColorAt(idx, color);
+
+                        idx++;
+                    }
+                }
+                
+                buildings.instanceMatrix.needsUpdate = true;
+                buildings.instanceColor.needsUpdate = true;
+                population.instanceMatrix.needsUpdate = true;
+                population.instanceColor.needsUpdate = true;
+                traffic.geometry.attributes.position.needsUpdate = true;
+                power.instanceMatrix.needsUpdate = true;
+                power.instanceColor.needsUpdate = true;
+                heat.instanceMatrix.needsUpdate = true;
+                heat.instanceColor.needsUpdate = true;
+                
+                // --- HUD UPDATES ---
+                document.getElementById('traffic-val').innerText = (metrics.avg_traffic * 100).toFixed(1) + "%";
+                document.getElementById('traffic-bar').style.width = (metrics.avg_traffic * 100) + "%";
+                
+                document.getElementById('pop-val').innerText = (metrics.avg_population * 100).toFixed(1) + "%";
+                document.getElementById('pop-bar').style.width = (metrics.avg_population * 100) + "%";
+                
+                document.getElementById('power-val').innerText = (metrics.avg_power * 100).toFixed(1) + "%";
+                document.getElementById('power-bar').style.width = (metrics.avg_power * 100) + "%";
+                
+                document.getElementById('heat-val').innerText = (metrics.avg_heat * 100).toFixed(1) + "%";
+                document.getElementById('heat-bar').style.width = (metrics.avg_heat * 100) + "%";
+                
+                document.getElementById('status').innerText = `TICK: ${data.tick} - CONNECTED`;
+                document.getElementById('status').style.color = "#00ffff";
+                
+                // --- ANOMALIES ---
+                const status = await fetch(`${API_URL}/city_status`).then(r => r.json());
+                const anomDiv = document.getElementById('anomalies');
+                if (status.recent_anomalies && status.recent_anomalies.length > 0) {
+                    anomDiv.innerHTML = "<strong style='color:#ff6600;'>⚠ ALERTS:</strong><br/>" +
+                        status.recent_anomalies.slice(-3).map(a => `${a.type}: ${(a.value * 100).toFixed(0)}%`).join('<br/>');
+                } else {
+                    anomDiv.innerHTML = "<span style='color:#00ff00;'>✓ All systems nominal</span>";
+                }
+
+            } catch (e) {
+                document.getElementById('status').innerText = "DISCONNECTED";
+                document.getElementById('status').style.color = "red";
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            updateCity();
+            scene.rotation.y += 0.001;
+            renderer.render(scene, camera);
+        }
+        
+        animate();
+
+        async function trigger(type) {
+            await fetch(`${API_URL}/trigger_event?type=${type}`, { method: 'POST' });
+        }
+
+        window.addEventListener('resize', () => {
+            const aspect = window.innerWidth / window.innerHeight;
+            camera.left = -d * aspect;
+            camera.right = d * aspect;
+            camera.top = d;
+            camera.bottom = -d;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
