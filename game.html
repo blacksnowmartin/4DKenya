@@ -4,27 +4,168 @@
     <meta charset="UTF-8">
     <title>Nairobi Protocol | Cyber Defense</title>
     <style>
-        body { margin: 0; background-color: #050510; overflow: hidden; font-family: 'Segoe UI', monospace; user-select: none; }
+        body { 
+            margin: 0; 
+            background: linear-gradient(135deg, #050510 0%, #1a0a2e 100%);
+            overflow: hidden; 
+            font-family: 'Courier New', monospace; 
+            user-select: none; 
+        }
         
         #ui-panel {
-            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 20px;
-            background: rgba(0, 0, 0, 0.8); border: 2px solid #00ffcc;
-            padding: 10px 30px; border-radius: 20px;
-            box-shadow: 0 0 20px rgba(0, 255, 204, 0.2);
-        }
-        
-        .stat { color: #00ffcc; font-size: 18px; font-weight: bold; }
-        .label { font-size: 10px; color: #888; display: block; }
-        
-        #gameover {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            font-size: 60px; color: red; font-weight: bold; text-shadow: 0 0 30px red;
-            display: none; pointer-events: none;
+            position: absolute; 
+            top: 20px; 
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9); 
+            border: 2px solid #00ffcc;
+            border-radius: 15px;
+            padding: 15px 25px;
+            box-shadow: 0 0 30px rgba(0, 255, 204, 0.3), inset 0 0 20px rgba(0, 255, 204, 0.1);
+            color: #00ffcc;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 100;
         }
 
-        #controls { position: absolute; bottom: 20px; right: 20px; }
-        button { background: #333; color: white; border: 1px solid #666; padding: 10px; cursor: pointer; }
+        .stat-row {
+            display: flex;
+            gap: 30px;
+            margin: 8px 0;
+        }
+
+        .stat-item {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .stat-label {
+            color: #888;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            color: #00ffcc;
+            text-shadow: 0 0 10px rgba(0, 255, 204, 0.8);
+        }
+
+        .stat-bar {
+            width: 100px;
+            height: 8px;
+            background: rgba(0, 100, 100, 0.3);
+            border: 1px solid #00ffcc;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .stat-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff88, #00ffcc);
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.8);
+        }
+
+        #info-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #ff6600;
+            border-radius: 15px;
+            padding: 15px 25px;
+            box-shadow: 0 0 30px rgba(255, 102, 0, 0.3);
+            color: #ff6600;
+            font-size: 13px;
+            z-index: 100;
+        }
+
+        .wave-info {
+            color: #ffaa00;
+            text-shadow: 0 0 10px #ffaa00;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+
+        #gameover {
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%);
+            font-size: 80px; 
+            color: #ff0000;
+            font-weight: bold; 
+            text-shadow: 0 0 40px #ff0000;
+            display: none; 
+            pointer-events: none;
+            z-index: 200;
+            animation: pulse-text 0.5s infinite;
+        }
+
+        @keyframes pulse-text {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        #controls { 
+            position: absolute; 
+            bottom: 20px; 
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        button { 
+            background: linear-gradient(135deg, #1a3a3a, #0d2020);
+            color: #00ffcc;
+            border: 2px solid #00ffcc;
+            padding: 12px 20px; 
+            cursor: pointer;
+            border-radius: 8px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 1px;
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.2);
+        }
+
+        button:hover {
+            background: linear-gradient(135deg, #00ffcc, #00dd99);
+            color: #000;
+            box-shadow: 0 0 25px rgba(0, 255, 204, 0.8);
+            transform: scale(1.05);
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        #tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.95);
+            border: 1px solid #00ffcc;
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: #00ffcc;
+            font-size: 11px;
+            pointer-events: none;
+            display: none;
+            z-index: 150;
+            max-width: 150px;
+        }
+
+        .enemy-stat {
+            margin: 5px 0;
+            font-size: 11px;
+        }
+
+        .enemy-basic { color: #ff5555; }
+        .enemy-elite { color: #ff00ff; }
+        .enemy-swarm { color: #ff8800; }
 
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -38,81 +179,164 @@
 <body>
 
     <div id="ui-panel">
-        <div><span class="label">CREDITS</span><span class="stat" id="credits">0</span></div>
-        <div><span class="label">SCORE</span><span class="stat" id="score">0</span></div>
-        <div><span class="label">SYSTEM</span><span class="stat" id="status" style="color:cyan">SECURE</span></div>
+        <div class="stat-row">
+            <div class="stat-item">
+                <span class="stat-label">CREDITS</span>
+                <span class="stat-value" id="credits">150</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">SCORE</span>
+                <span class="stat-value" id="score">0</span>
+            </div>
+        </div>
+        <div class="stat-row">
+            <div class="stat-item">
+                <span class="stat-label">LIVES</span>
+                <div class="stat-bar">
+                    <div class="stat-bar-fill" id="lives-bar" style="width: 100%;"></div>
+                </div>
+                <span class="stat-value" id="lives">10</span>
+            </div>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label" id="status" style="color: #00ff88;">● SYSTEM SECURE</span>
+        </div>
     </div>
 
-    <div id="gameover">SYSTEM BREACHED</div>
+    <div id="info-panel">
+        <div class="stat-label">THREAT LEVEL</div>
+        <div class="wave-info" id="wave-display">WAVE 1</div>
+        <div class="stat-label" style="margin-top: 10px;">ENEMIES SPAWNED</div>
+        <div class="stat-value" id="enemy-count">0</div>
+        <div class="stat-label" style="margin-top: 10px;">TOWERS ACTIVE</div>
+        <div class="stat-value" id="tower-count">0</div>
+    </div>
+
+    <div id="gameover">⚠ SYSTEM BREACHED ⚠</div>
+    
+    <div id="tooltip"></div>
     
     <div id="controls">
-        <button onclick="sendAction(0,0,'reset')">REBOOT SYSTEM</button>
+        <button onclick="sendAction(0,0,'reset')">⟲ RESTART</button>
     </div>
 
     <script>
         const GRID_SIZE = 15;
         const API = "http://localhost:8000";
+        let gameData = null;
+        let selectedTower = null;
 
         // --- THREE.JS SETUP ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x050510);
+        scene.fog = new THREE.Fog(0x050510, 50, 100);
         
         const aspect = window.innerWidth / window.innerHeight;
         const d = 12;
         const camera = new THREE.OrthographicCamera(-d*aspect, d*aspect, d, -d, 1, 1000);
         camera.position.set(20, 20, 20);
-        camera.lookAt(0,0,0);
+        camera.lookAt(0, 0, 0);
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.toneMapping = THREE.ReinhardToneMapping;
+        renderer.toneMappingExposure = 1.2;
         document.body.appendChild(renderer.domElement);
 
-        // --- BLOOM FX ---
+        // --- BLOOM POST-PROCESSING ---
         const composer = new THREE.EffectComposer(renderer);
         composer.addPass(new THREE.RenderPass(scene, camera));
-        const bloom = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-        bloom.threshold = 0; bloom.strength = 1.5; bloom.radius = 0.5;
+        const bloom = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.8, 0.5, 0.9);
+        bloom.threshold = 0.15;
+        bloom.strength = 2.0;
+        bloom.radius = 0.6;
         composer.addPass(bloom);
 
-        // --- GAME OBJECTS ---
+        // --- LIGHTING ---
+        const ambientLight = new THREE.AmbientLight(0x00ffcc, 0.3);
+        scene.add(ambientLight);
         
-        // 1. GRID (For clicking)
-        // We create invisible planes for the raycaster to hit
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+        dirLight.position.set(20, 30, 15);
+        dirLight.castShadow = true;
+        scene.add(dirLight);
+
+        // --- GRID ---
+        const gridHelper = new THREE.GridHelper(GRID_SIZE, GRID_SIZE, 0x00aa55, 0x003344);
+        scene.add(gridHelper);
+
+        // --- INTERACTIVE CLICK PLANE ---
         const hitPlaneGeo = new THREE.PlaneGeometry(GRID_SIZE, GRID_SIZE);
         const hitPlaneMat = new THREE.MeshBasicMaterial({ visible: false });
         const hitPlane = new THREE.Mesh(hitPlaneGeo, hitPlaneMat);
-        hitPlane.rotation.x = -Math.PI / 2; // Flat on floor
+        hitPlane.rotation.x = -Math.PI / 2;
         scene.add(hitPlane);
 
-        // Grid Lines Visual
-        const gridHelper = new THREE.GridHelper(GRID_SIZE, GRID_SIZE, 0x004444, 0x002222);
-        scene.add(gridHelper);
-
-        // 2. TOWERS (Instanced Mesh)
-        const tGeo = new THREE.BoxGeometry(0.8, 1, 0.8);
-        const tMat = new THREE.MeshStandardMaterial({ color: 0x00ffcc, emissive: 0x004444, roughness: 0.1 });
-        const towers = new THREE.InstancedMesh(tGeo, tMat, GRID_SIZE*GRID_SIZE);
+        // --- TOWERS (Instanced Mesh) ---
+        const tGeo = new THREE.ConeGeometry(0.5, 2, 8);
+        const tMat = new THREE.MeshStandardMaterial({ 
+            color: 0x00ffcc, 
+            emissive: 0x00ffaa,
+            emissiveIntensity: 0.5,
+            metalness: 0.8,
+            roughness: 0.2
+        });
+        const towers = new THREE.InstancedMesh(tGeo, tMat, GRID_SIZE * GRID_SIZE);
         scene.add(towers);
 
-        // 3. ENEMIES (Simple red spheres)
-        const eGeo = new THREE.SphereGeometry(0.3, 8, 8);
-        const eMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-        // We will create individual meshes for enemies since they move smoothly
-        let enemyMeshes = []; 
+        // --- TOWER RANGE INDICATORS ---
+        const rangeGeo = new THREE.CircleGeometry(3.5, 32);
+        const rangeMat = new THREE.LineBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.2 });
+        const rangeLines = {};
 
-        // 4. THE CORE
-        const coreGeo = new THREE.BoxGeometry(1, 3, 1);
-        const coreMat = new THREE.MeshStandardMaterial({ color: 0xffaa00, emissive: 0xff4400, emissiveIntensity: 2 });
+        // --- ENEMIES (Individual meshes) ---
+        let enemyMeshes = [];
+        const enemyGeoBasic = new THREE.SphereGeometry(0.3, 8, 8);
+        const enemyGeoElite = new THREE.OctahedronGeometry(0.35);
+        const enemyGeoSwarm = new THREE.TetrahedronGeometry(0.25);
+
+        // --- PROJECTILES (Lines with glow) ---
+        let projectileMeshes = [];
+        const projMat = new THREE.LineBasicMaterial({ color: 0xffaa00, linewidth: 3 });
+
+        // --- CORE (Pulsing) ---
+        const coreGeo = new THREE.IcosahedronGeometry(0.8, 4);
+        const coreMat = new THREE.MeshStandardMaterial({ 
+            color: 0xffaa00,
+            emissive: 0xff6600,
+            emissiveIntensity: 2.0,
+            metalness: 1.0,
+            roughness: 0.3
+        });
         const core = new THREE.Mesh(coreGeo, coreMat);
+        core.position.set(GRID_SIZE/2 - GRID_SIZE/2, 0.5, GRID_SIZE/2 - GRID_SIZE/2);
         scene.add(core);
+
+        // --- PARTICLE SYSTEM (Ambient glow) ---
+        const particleCount = 100;
+        const particles = new THREE.Points(
+            new THREE.BufferGeometry().setAttribute('position', 
+                new THREE.BufferAttribute(new Float32Array(particleCount * 3), 3)),
+            new THREE.PointsMaterial({ color: 0x00ffcc, size: 0.05, transparent: true, opacity: 0.6 })
+        );
+        for (let i = 0; i < particleCount; i++) {
+            particles.geometry.attributes.position.array[i*3] = (Math.random()-0.5) * 20;
+            particles.geometry.attributes.position.array[i*3+1] = Math.random() * 15;
+            particles.geometry.attributes.position.array[i*3+2] = (Math.random()-0.5) * 20;
+        }
+        scene.add(particles);
 
         const dummy = new THREE.Object3D();
         const color = new THREE.Color();
 
-        // --- INTERACTION (RAYCASTING) ---
+        // --- RAYCASTING ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
+
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        });
 
         window.addEventListener('mousedown', (event) => {
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -123,12 +347,18 @@
 
             if (intersects.length > 0) {
                 const point = intersects[0].point;
-                // Convert 3D world point to Grid Index
                 const gx = Math.floor(point.x + GRID_SIZE/2);
-                const gy = Math.floor(point.z + GRID_SIZE/2);
+                const gz = Math.floor(point.z + GRID_SIZE/2);
                 
-                if(gx >= 0 && gx < GRID_SIZE && gy >= 0 && gy < GRID_SIZE) {
-                    sendAction(gx, gy, 'build');
+                if(gx >= 0 && gx < GRID_SIZE && gz >= 0 && gz < GRID_SIZE) {
+                    // Toggle tower selection
+                    if (selectedTower && selectedTower.x === gx && selectedTower.y === gz) {
+                        sendAction(gx, gz, 'upgrade');
+                        selectedTower = null;
+                    } else {
+                        sendAction(gx, gz, 'build');
+                        selectedTower = {x: gx, y: gz};
+                    }
                 }
             }
         });
@@ -136,76 +366,148 @@
         // --- GAME LOOP ---
         async function gameLoop() {
             try {
-                // 1. Fetch State
                 const res = await fetch(`${API}/gameloop`);
-                const data = await res.json();
+                gameData = await res.json();
+                const stats = gameData.stats;
                 
-                // 2. Update Stats
-                document.getElementById('credits').innerText = data.stats.credits;
-                document.getElementById('score').innerText = data.stats.score;
+                // Update UI
+                document.getElementById('credits').innerText = stats.credits;
+                document.getElementById('score').innerText = stats.score;
+                document.getElementById('lives').innerText = stats.lives;
+                document.getElementById('enemy-count').innerText = gameData.enemies.length;
+                document.getElementById('wave-display').innerText = `WAVE ${stats.wave}`;
                 
-                if(data.stats.game_over) {
+                const livesPercent = (stats.lives / 10) * 100;
+                document.getElementById('lives-bar').style.width = livesPercent + "%";
+                
+                if(stats.lives <= 3) {
+                    document.getElementById('lives-bar').style.background = 'linear-gradient(90deg, #ff3333, #ff0000)';
+                }
+                
+                if(stats.game_over) {
                     document.getElementById('gameover').style.display = 'block';
-                    document.getElementById('status').innerText = "CRITICAL FAILURE";
-                    document.getElementById('status').style.color = "red";
+                    document.getElementById('status').innerText = "● SYSTEM BREACHED";
+                    document.getElementById('status').style.color = "#ff3333";
                 } else {
                     document.getElementById('gameover').style.display = 'none';
-                    document.getElementById('status').innerText = "DEFENDING...";
-                    document.getElementById('status').style.color = "cyan";
+                    document.getElementById('status').innerText = "● SYSTEM SECURE";
+                    document.getElementById('status').style.color = "#00ff88";
                 }
 
-                // 3. Render Grid (Towers)
-                let idx = 0;
-                const grid = data.grid;
-                for(let x=0; x<GRID_SIZE; x++) {
-                    for(let z=0; z<GRID_SIZE; z++) {
-                        const cell = grid[idx];
+                // Render Towers
+                const towerEntries = Object.entries(gameData.towers);
+                document.getElementById('tower-count').innerText = towerEntries.length;
+                
+                for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
+                    dummy.scale.set(0, 0, 0);
+                    dummy.updateMatrix();
+                    towers.setMatrixAt(i, dummy.matrix);
+                }
+
+                towerEntries.forEach(([key, tower], idx) => {
+                    const x = tower.x;
+                    const y = tower.y;
+                    const isCore = (x === Math.floor(GRID_SIZE/2) && y === Math.floor(GRID_SIZE/2));
+                    
+                    if (!isCore) {
+                        const level = tower.level;
+                        dummy.position.set(x - GRID_SIZE/2 + 0.5, level * 0.3, y - GRID_SIZE/2 + 0.5);
+                        dummy.scale.set(0.8, 0.5 + level * 0.3, 0.8);
+                        dummy.updateMatrix();
+                        towers.setMatrixAt(idx, dummy.matrix);
                         
-                        if (cell === 1) { // TOWER
-                            dummy.position.set(x - GRID_SIZE/2 + 0.5, 0.5, z - GRID_SIZE/2 + 0.5);
-                            dummy.scale.set(1, 1, 1);
-                            dummy.updateMatrix();
-                            towers.setMatrixAt(idx, dummy.matrix);
-                        } else {
-                            // Hide empty cells by scaling to 0
-                            dummy.position.set(0, -10, 0);
-                            dummy.scale.set(0,0,0);
-                            dummy.updateMatrix();
-                            towers.setMatrixAt(idx, dummy.matrix);
-                        }
-                        idx++;
+                        // Color based on energy
+                        const energyRatio = tower.energy / 100;
+                        color.setHSL(0.5 + energyRatio * 0.1, 1.0, 0.4 + energyRatio * 0.3);
+                        towers.setColorAt(idx, color);
                     }
-                }
+                });
                 towers.instanceMatrix.needsUpdate = true;
+                towers.instanceColor.needsUpdate = true;
 
-                // 4. Render Enemies
-                // Clear old meshes
+                // Render Enemies
                 enemyMeshes.forEach(m => scene.remove(m));
                 enemyMeshes = [];
                 
-                data.enemies.forEach(e => {
-                    const mesh = new THREE.Mesh(eGeo, eMat);
-                    mesh.position.set(e.x - GRID_SIZE/2 + 0.5, 0.5, e.y - GRID_SIZE/2 + 0.5);
+                gameData.enemies.forEach(e => {
+                    let geo = enemyGeoBasic;
+                    let matColor = 0xff3333;
+                    if (e.type === "elite") {
+                        geo = enemyGeoElite;
+                        matColor = 0xff00ff;
+                    } else if (e.type === "swarm") {
+                        geo = enemyGeoSwarm;
+                        matColor = 0xff8800;
+                    }
+                    
+                    const mat = new THREE.MeshStandardMaterial({ 
+                        color: matColor,
+                        emissive: matColor,
+                        emissiveIntensity: 0.8
+                    });
+                    const mesh = new THREE.Mesh(geo, mat);
+                    mesh.position.set(e.x - GRID_SIZE/2 + 0.5, 0.4, e.y - GRID_SIZE/2 + 0.5);
+                    
+                    // HP bar above enemy
+                    const barGeo = new THREE.PlaneGeometry(0.6, 0.1);
+                    const hpRatio = e.hp / e.max_hp;
+                    const barMat = new THREE.MeshBasicMaterial({
+                        color: hpRatio > 0.5 ? 0x00ff00 : (hpRatio > 0.25 ? 0xff8800 : 0xff3333)
+                    });
+                    const barMesh = new THREE.Mesh(barGeo, barMat);
+                    barMesh.scale.x = hpRatio;
+                    barMesh.position.set(e.x - GRID_SIZE/2 + 0.5, 0.8, e.y - GRID_SIZE/2 + 0.5);
+                    
                     scene.add(mesh);
+                    scene.add(barMesh);
                     enemyMeshes.push(mesh);
+                    enemyMeshes.push(barMesh);
                 });
 
-            } catch(e) { console.log(e); }
+                // Render Projectiles
+                projectileMeshes.forEach(m => scene.remove(m));
+                projectileMeshes = [];
+                
+                gameData.projectiles.forEach(p => {
+                    const points = [
+                        new THREE.Vector3(p.sx - GRID_SIZE/2 + 0.5, 0.5, p.sy - GRID_SIZE/2 + 0.5),
+                        new THREE.Vector3(p.ex - GRID_SIZE/2 + 0.5, 0.3, p.ey - GRID_SIZE/2 + 0.5)
+                    ];
+                    const projGeo = new THREE.BufferGeometry().setFromPoints(points);
+                    const projLine = new THREE.Line(projGeo, projMat);
+                    scene.add(projLine);
+                    projectileMeshes.push(projLine);
+                });
+
+            } catch(e) { 
+                console.log(e);
+                document.getElementById('status').innerText = "● CONNECTION LOST";
+                document.getElementById('status').style.color = "red";
+            }
         }
 
         async function sendAction(x, y, type) {
             await fetch(`${API}/action?x=${x}&y=${y}&type=${type}`, { method: 'POST' });
         }
 
-        // Run Logic Loop every 100ms
+        // Game Loop every 100ms
         setInterval(gameLoop, 100);
 
-        // Run Render Loop (60fps)
+        // Render Loop (60fps)
         function animate() {
             requestAnimationFrame(animate);
-            // Pulse the Core
-            const time = Date.now() * 0.005;
-            core.scale.set(1 + Math.sin(time)*0.1, 3, 1 + Math.sin(time)*0.1);
+            
+            // Rotate view slightly
+            camera.position.y = 20 + Math.sin(Date.now() * 0.001) * 2;
+            
+            // Pulse core
+            const time = Date.now() * 0.004;
+            core.scale.set(1 + Math.sin(time)*0.15, 1 + Math.sin(time)*0.15, 1 + Math.sin(time)*0.15);
+            core.rotation.x += 0.005;
+            core.rotation.y += 0.008;
+            
+            // Animate particles
+            particles.rotation.y += 0.0002;
             
             composer.render();
         }
@@ -213,11 +515,12 @@
 
         // Resize
         window.addEventListener('resize', () => {
-             const aspect = window.innerWidth / window.innerHeight;
-             camera.left = -d * aspect; camera.right = d * aspect;
-             camera.updateProjectionMatrix();
-             renderer.setSize(window.innerWidth, window.innerHeight);
-             composer.setSize(window.innerWidth, window.innerHeight);
+            const aspect = window.innerWidth / window.innerHeight;
+            camera.left = -d * aspect;
+            camera.right = d * aspect;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
         });
 
     </script>
