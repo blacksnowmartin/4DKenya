@@ -78,3 +78,6 @@ cd ~/4DKenya
 source venv/bin/activate
 python server.py
 ```
+
+Developed with love by 
+## Martin Kitonga
