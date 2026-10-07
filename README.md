@@ -79,5 +79,5 @@ source venv/bin/activate
 python server.py
 ```
 
-Developed with love by 
+Developed with patriotism and love by 
 ## Martin Kitonga
