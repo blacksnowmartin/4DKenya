@@ -1,83 +1,107 @@
 # 4DKenya
-“This project creates the first Kenyan-built 4D computational prototyping engine — a tool that allows scientists, engineers, and innovators to simulate interactions in higher-dimensional spaces. This opens unexplored frontiers for future technologies such as teleportation, ultra-efficient routing, quantum architectures, and advanced materials.”
 
-## Setting up 
-```bash
-git clone https://github.com/blacksnowmartin/4DKenya.git
-```
-Make sure you have this installed in your machine
-# 4DKenya
+A collection of experimental 4D, AI, cyber-defense, and smart-city simulation prototypes built around a shared vision of next-generation systems design.
 
-"This project creates the first Kenyan-built 4D computational prototyping engine — a tool that allows scientists, engineers, and innovators to simulate interactions in higher-dimensional spaces. This opens unexplored frontiers for future technologies such as teleportation, ultra-efficient routing, quantum architectures, and advanced materials."
+## Repository structure
 
-## Setting Up
-
-```bash
-git clone https://github.com/blacksnowmartin/4DKenya.git
-```
-
-Make sure you have the following installed on your machine:
-
-```bash
-sudo apt update
-sudo apt install python3-full python3-venv
-```
-
-Inside the 4DKenya folder, create a virtual environment:
-
-```bash
-python3 -m venv venv
-```
-
-This creates a folder named `venv` that stores your project libraries.
-
-To activate the environment:
-
-```bash
-source venv/bin/activate
-```
-
-Install the required packages:
-
-```bash
-pip install torch numpy fastapi uvicorn
+```text
+4DKenya/
+├── README.md
+├── index.html                  # root landing/demo entry
+├── apps/
+│   ├── 4d-core/
+│   │   └── server.py
+│   ├── defense-game/
+│   │   ├── game.py
+│   │   └── game.html
+│   ├── city-nexus/
+│   │   ├── nexus.py
+│   │   └── nexus.html
+│   ├── network-monitor/
+│   │   ├── net.py
+│   │   └── net.html
+│   ├── network-analytics/
+│   │   ├── net_monitor.py
+│   │   └── net_monitor.html
+│   ├── digital-twin/
+│   │   ├── digital_twin.py
+│   │   └── digital_twin.html
+│   ├── experiments/
+│   │   └── color_pattern.py
+│   └── README.md
+├── docs/
+│   └── ideas.md
+├── archive/
+│   └── 4D-codes.zip
+├── requirements.txt
+├── .gitignore
+└── .git/
 ```
 
-## Running the Project
+## Quick start
 
 ```bash
-cd ~/4DKenya
-source venv/bin/activate
+cd 4DKenya
+python -m venv .venv
+# Windows
+.venv\Scripts\activate
+# Linux/macOS
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+## Run each project
+
+### 4D core
+
+```bash
+cd apps/4d-core
 python server.py
 ```
 
+### Defense game
+
 ```bash
-sudo apt update
-sudo apt install python3-full python3-venv
+cd apps/defense-game
+python game.py
 ```
 
-Inside the 4DKenya folder make sure you run
-```bash
-python3 -m venv venv
-```
-(This creates a folder named venv that will store your libraries.)
+### City nexus
 
-To activate environment:
 ```bash
-source venv/bin/activate
+cd apps/city-nexus
+python nexus.py
 ```
 
-To install the packages safely you run
+### Network monitor
+
 ```bash
-pip install torch numpy fastapi uvicorn
+cd apps/network-monitor
+python net.py
 ```
 
-TO RUN THE MAIN PROJECT
+### Network analytics
+
 ```bash
-cd ~/4DKenya
-source venv/bin/activate
-python server.py
+cd apps/network-analytics
+python net_monitor.py
 ```
 
-Developed with patriotism and love by 
-## Martin Kitonga
+### Digital twin
+
+```bash
+cd apps/digital-twin
+python digital_twin.py
+```
+
+## Notes
+
+- The repo was reorganized into feature-based folders so the experiments are easier to navigate.
+- HTML demos are intended to be opened in a browser while their matching Python service runs locally.
+- Archived or experimental content lives under the archive and experiments folders instead of polluting the main workspace.
+
+Developed with curiosity, creativity, and community-driven innovation.
+
+---
+
+Martin Kitonga
