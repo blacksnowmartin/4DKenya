@@ -1,146 +1,390 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>4DKenya | Frontier Innovation Engine</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>4DKenya | Project Launcher</title>
     <style>
-        body { margin: 0; background-color: #050510; color: #00ffcc; font-family: 'Courier New', monospace; overflow: hidden; }
-        #info { position: absolute; top: 20px; left: 20px; z-index: 10; pointer-events: none; }
-        h1 { margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 2px; }
-        p { font-size: 14px; opacity: 0.8; }
-        #status { color: #ff3366; font-weight: bold; }
+        :root {
+            --bg: #050b14;
+            --panel: rgba(10, 18, 29, 0.9);
+            --panel-strong: rgba(15, 25, 38, 0.96);
+            --border: rgba(0, 255, 208, 0.45);
+            --cyan: #6ef7ff;
+            --teal: #00f0c5;
+            --lime: #8bf59f;
+            --orange: #ffb454;
+            --pink: #ff74d4;
+            --text: #eafcff;
+            --muted: #9ad7d4;
+            --shadow: rgba(0, 240, 197, 0.32);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at top, rgba(37, 99, 235, 0.18), transparent 30%),
+                linear-gradient(135deg, #03070d 0%, #071319 40%, #091926 100%);
+            color: var(--text);
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .shell {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 48px 24px 64px;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, rgba(10, 18, 29, 0.82), rgba(14, 29, 44, 0.9));
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            box-shadow: 0 0 35px var(--shadow);
+            padding: 30px 32px;
+            margin-bottom: 32px;
+        }
+
+        .eyebrow {
+            display: inline-block;
+            color: var(--teal);
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            font-size: 11px;
+            font-weight: 700;
+            margin-bottom: 14px;
+        }
+
+        h1 {
+            margin: 0 0 12px;
+            font-size: clamp(2.2rem, 4vw, 4rem);
+            line-height: 1.05;
+            letter-spacing: -0.05em;
+        }
+
+        .subtitle {
+            margin: 0;
+            max-width: 760px;
+            color: var(--muted);
+            font-size: 1.05rem;
+            line-height: 1.7;
+        }
+
+        .stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 22px;
+        }
+
+        .stat {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(110, 247, 255, 0.15);
+            padding: 12px 16px;
+            border-radius: 12px;
+            min-width: 140px;
+        }
+
+        .stat-label {
+            display: block;
+            color: var(--muted);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--cyan);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 22px;
+        }
+
+        .card {
+            position: relative;
+            background: linear-gradient(180deg, rgba(11, 20, 31, 0.92), rgba(9, 16, 24, 0.96));
+            border: 1px solid rgba(110, 247, 255, 0.2);
+            border-radius: 20px;
+            padding: 22px 20px 18px;
+            overflow: hidden;
+            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.22);
+            transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(0, 240, 197, 0.55);
+            box-shadow: 0 16px 28px rgba(0, 240, 197, 0.08);
+        }
+
+        .card::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--teal), var(--pink), var(--orange));
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 10px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-weight: 700;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.03);
+            color: var(--teal);
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--teal);
+            box-shadow: 0 0 12px rgba(0, 240, 197, 0.9);
+        }
+
+        h2 {
+            margin: 18px 0 10px;
+            font-size: 1.35rem;
+            line-height: 1.25;
+        }
+
+        .description {
+            color: var(--muted);
+            line-height: 1.7;
+            font-size: 0.95rem;
+            min-height: 80px;
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 16px 0 18px;
+        }
+
+        .tag {
+            border: 1px solid rgba(143, 219, 255, 0.15);
+            background: rgba(110, 247, 255, 0.04);
+            border-radius: 999px;
+            color: var(--cyan);
+            font-size: 10px;
+            padding: 6px 9px;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: auto;
+        }
+
+        .button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 42px;
+            padding: 0 14px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 700;
+            transition: 0.15s ease;
+            border: 1px solid transparent;
+        }
+
+        .button.primary {
+            background: linear-gradient(135deg, rgba(0, 240, 197, 0.2), rgba(110, 247, 255, 0.14));
+            color: var(--text);
+            border-color: rgba(110, 247, 255, 0.4);
+            box-shadow: 0 0 18px rgba(0, 240, 197, 0.18);
+        }
+
+        .button.secondary {
+            color: var(--muted);
+            border-color: rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.02);
+        }
+
+        .button:hover {
+            filter: brightness(1.08);
+        }
+
+        .footer-note {
+            margin-top: 36px;
+            padding-top: 18px;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        @media (max-width: 640px) {
+            .shell { padding-top: 28px; }
+            .hero { padding: 22px 18px; }
+            .card { padding-left: 18px; padding-right: 18px; }
+        }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
-    <div id="info">
-        <h1>4DKenya Engine</h1>
-        <p>System: Higher-Dimensional AI Prototyping</p>
-        <p>Status: <span id="status">Connecting to Neural Core...</span></p>
-        <p>Simulation: 4D Hypercube Projection (Tesseract)</p>
+    <div class="shell">
+        <header class="hero">
+            <div class="eyebrow">4DKenya Systems</div>
+            <h1>Simulation Launcher</h1>
+            <p class="subtitle">
+                Explore the project as a unified portfolio of higher-dimensional, AI-driven, and city-scale experiments.
+                Open a simulation, run its backend, and move between demos from one clean entry point.
+            </p>
+
+            <div class="stats">
+                <div class="stat">
+                    <span class="stat-label">Experiments</span>
+                    <span class="stat-value">7</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Modes</span>
+                    <span class="stat-value">Live + UI</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Focus</span>
+                    <span class="stat-value">4D / AI / Urban</span>
+                </div>
+            </div>
+        </header>
+
+        <main id="launcher-grid" class="grid" aria-label="Project launcher grid"></main>
+
+        <div class="footer-note">
+            To run a backend-driven demo, open the matching Python file in a terminal from its app folder, then open the associated HTML interface in a browser.
+        </div>
     </div>
 
     <script>
-        // --- CONFIGURATION ---
-        const API_URL = "http://localhost:8000/simulate";
-        let time = 0;
-
-        // --- THREE.JS SETUP ---
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
-
-        // --- 4D GEOMETRY SETUP ---
-        // A tesseract has 16 vertices (corners)
-        const vertices4D = [];
-        for (let i = 0; i < 16; i++) {
-            vertices4D.push({
-                x: (i & 1) ? 1 : -1,
-                y: (i & 2) ? 1 : -1,
-                z: (i & 4) ? 1 : -1,
-                w: (i & 8) ? 1 : -1
-            });
-        }
-
-        // Edges connect vertices that differ by exactly 1 coordinate
-        const edges = [];
-        for (let i = 0; i < 16; i++) {
-            for (let j = i + 1; j < 16; j++) {
-                let diff = 0;
-                if (vertices4D[i].x !== vertices4D[j].x) diff++;
-                if (vertices4D[i].y !== vertices4D[j].y) diff++;
-                if (vertices4D[i].z !== vertices4D[j].z) diff++;
-                if (vertices4D[i].w !== vertices4D[j].w) diff++;
-                if (diff === 1) edges.push([i, j]);
+        const apps = [
+            {
+                title: '4D Core',
+                badge: 'API + engine',
+                description: 'The central 4D prototyping engine for generating simulated higher-dimensional system states.',
+                tags: ['FastAPI', '4D', 'Core'],
+                html: null,
+                command: 'cd apps/4d-core && python server.py',
+                url: 'http://localhost:8000'
+            },
+            {
+                title: 'Defense Game',
+                badge: 'Gameplay',
+                description: 'A tower-defense simulation for protecting a central core while hostile waves approach.',
+                tags: ['Game', 'Strategy', 'AI'],
+                html: 'apps/defense-game/game.html',
+                command: 'cd apps/defense-game && python game.py',
+                url: '#'
+            },
+            {
+                title: 'City Nexus',
+                badge: 'Urban model',
+                description: 'A live city-state simulation about infrastructure, population density, traffic flow, and pollution.',
+                tags: ['City', 'Nexus', 'Simulation'],
+                html: 'apps/city-nexus/nexus.html',
+                command: 'cd apps/city-nexus && python nexus.py',
+                url: '#'
+            },
+            {
+                title: 'Network Monitor',
+                badge: 'Security visual',
+                description: 'Monitoring view for network traffic, throughput, packet health, and security posture.',
+                tags: ['Network', 'Monitor', 'Cyber'],
+                html: 'apps/network-monitor/net.html',
+                command: 'cd apps/network-monitor && python net.py',
+                url: '#'
+            },
+            {
+                title: 'Network Analytics',
+                badge: 'Telemetry',
+                description: 'A deeper network analytics dashboard with threat detection, health trends, and traffic trends.',
+                tags: ['Analytics', 'Threats', 'Dashboard'],
+                html: 'apps/network-analytics/net_monitor.html',
+                command: 'cd apps/network-analytics && python net_monitor.py',
+                url: '#'
+            },
+            {
+                title: 'Digital Twin',
+                badge: 'Living city',
+                description: 'A digital-twin styled visualization that models urban dynamics and event-driven system stress.',
+                tags: ['Twin', 'Urban', 'Events'],
+                html: 'apps/digital-twin/digital_twin.html',
+                command: 'cd apps/digital-twin && python digital_twin.py',
+                url: '#'
+            },
+            {
+                title: 'Experiments',
+                badge: 'Visual tests',
+                description: 'Creative visual explorations and generative color studies for rapid iteration and prototyping.',
+                tags: ['Art', 'Patterns', 'Experimental'],
+                html: null,
+                command: 'cd apps/experiments && python color_pattern.py',
+                url: '#'
             }
-        }
+        ];
 
-        // Create 3D lines to represent the projected edges
-        const material = new THREE.LineBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.6 });
-        const lines = [];
-        
-        edges.forEach(edge => {
-            const geometry = new THREE.BufferGeometry();
-            // Initial dummy positions
-            const points = [new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,0)];
-            geometry.setFromPoints(points);
-            const line = new THREE.Line(geometry, material);
-            lines.push(line);
-            scene.add(line);
+        const launcherGrid = document.getElementById('launcher-grid');
+
+        apps.forEach((app) => {
+            const card = document.createElement('article');
+            card.className = 'card';
+
+            const actions = [];
+
+            if (app.html) {
+                actions.push(`<a class="button primary" href="${app.html}" target="_blank" rel="noreferrer">Open UI</a>`);
+            }
+
+            actions.push(`<a class="button secondary" href="${app.url === '#' ? 'javascript:void(0)' : app.url}" ${app.html ? 'target="_blank" rel="noreferrer"' : ''}>${app.html ? 'Open API' : 'Run command'}</a>`);
+
+            card.innerHTML = `
+                <div class="badge"><span class="dot"></span>${app.badge}</div>
+                <h2>${app.title}</h2>
+                <p class="description">${app.description}</p>
+                <div class="meta">
+                    ${app.tags.map((tag) => `<span class="tag">${tag}</span>`).join('')}
+                </div>
+                <div class="actions">
+                    ${actions.join('')}
+                </div>
+            `;
+
+            const runButton = card.querySelectorAll('.button.secondary')[0];
+            if (app.html) {
+                runButton.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    if (app.url !== '#') {
+                        window.open(app.url, '_blank', 'noopener,noreferrer');
+                    } else {
+                        alert(app.command);
+                    }
+                });
+            } else {
+                runButton.setAttribute('href', 'javascript:void(0)');
+                runButton.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    alert(app.command);
+                });
+            }
+
+            launcherGrid.appendChild(card);
         });
-
-        camera.position.z = 4;
-
-        // --- MATH UTILS ---
-        function rotate4D(point, angle) {
-            // Complex rotation in XW and ZW planes (Double rotation)
-            let x = point.x; let y = point.y; let z = point.z; let w = point.w;
-            
-            // Rotate around XW plane
-            let nx = x * Math.cos(angle) - w * Math.sin(angle);
-            let nw = x * Math.sin(angle) + w * Math.cos(angle);
-            x = nx; w = nw;
-
-            // Rotate around YZ plane
-            let ny = y * Math.cos(angle) - z * Math.sin(angle);
-            let nz = y * Math.sin(angle) + z * Math.cos(angle);
-            y = ny; z = nz;
-
-            return {x, y, z, w};
-        }
-
-        function project(v4) {
-            // Stereographic projection: 4D -> 3D
-            const distance = 3; 
-            const w = 1 / (distance - v4.w);
-            return new THREE.Vector3(
-                v4.x * w,
-                v4.y * w,
-                v4.z * w
-            );
-        }
-
-        // --- MAIN LOOP ---
-        async function animate() {
-            requestAnimationFrame(animate);
-            time += 0.01;
-
-            // 1. Fetch AI parameters (Simulating querying the 4DKenya engine)
-            // If backend is offline, we fallback to local math so the demo doesn't crash
-            try {
-                // Uncomment this line if running the python server
-                // const response = await fetch(`${API_URL}?time=${time}`);
-                // const data = await response.json();
-                // Use data.coords.w to influence rotation speed or shape
-                document.getElementById('status').innerText = "AI Core Active: Streaming Tensors";
-                document.getElementById('status').style.color = "#00ffcc";
-            } catch (e) {
-                document.getElementById('status').innerText = "AI Offline: Running Simulation Mode";
-            }
-
-            // 2. Update Geometry
-            const projectedVertices = vertices4D.map(v => {
-                const rotated = rotate4D(v, time);
-                return project(rotated);
-            });
-
-            // 3. Update Lines
-            edges.forEach((edge, index) => {
-                const v1 = projectedVertices[edge[0]];
-                const v2 = projectedVertices[edge[1]];
-                lines[index].geometry.setFromPoints([v1, v2]);
-            });
-
-            // Rotate the whole system in 3D for better viewing
-            scene.rotation.y += 0.005;
-            scene.rotation.x += 0.002;
-
-            renderer.render(scene, camera);
-        }
-
-        animate();
     </script>
 </body>
 </html>
